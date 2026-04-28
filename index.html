@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="description" content="MedIntel — Uyda davolanish nazorat ostida. AI yordamida tashxis va davolanish rejasi.">
+  <meta name="theme-color" content="#0D9488">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="MedIntel">
+  <title>MedIntel — Uyda davolanish</title>
+  <link rel="stylesheet" href="style.css">
+  <!-- PWA Manifest -->
+  <link rel="manifest" href="manifest.json">
+</head>
+<body>
+
+<!-- ════════════════════════════════════
+     SCREEN 1: ONBOARDING
+════════════════════════════════════ -->
+<div id="screen-onboarding" class="screen no-tabs active">
+  <div class="onboarding-hero">
+    <div class="hero-icon">🏥</div>
+    <h1>MedIntel</h1>
+    <p>Uyda davolanish — nazorat ostida<br>AI yordamida tashxis va davo rejasi</p>
+  </div>
+
+  <div class="onboarding-form">
+    <div class="form-group">
+      <label class="form-label" for="input-name">Ismingiz</label>
+      <input
+        id="input-name"
+        class="form-input"
+        type="text"
+        placeholder="Masalan: Aziz Karimov"
+        autocomplete="given-name"
+        maxlength="50"
+      >
+    </div>
+
+    <div class="form-group">
+      <label class="form-label" for="input-age">Yoshingiz</label>
+      <input
+        id="input-age"
+        class="form-input"
+        type="number"
+        placeholder="Masalan: 28"
+        min="1" max="120"
+        inputmode="numeric"
+      >
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Jins</label>
+      <div class="gender-group">
+        <button class="gender-btn" data-gender="erkak">👨 Erkak</button>
+        <button class="gender-btn" data-gender="ayol">👩 Ayol</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="onboarding-footer">
+    <div class="trust-badges">
+      <div class="badge">🔒 Xavfsiz</div>
+      <div class="badge">📱 Offline ishlaydi</div>
+      <div class="badge">🤖 AI tahlil</div>
+    </div>
+    <button id="btn-start" class="btn btn-primary">
+      Boshlash →
+    </button>
+    <p style="font-size:11px;color:var(--text-4);text-align:center;margin-top:12px;line-height:1.5;padding:0 10px">
+      Bu ilova tibbiy maslahat o'rnini bosa olmaydi. Jiddiy belgilar bo'lsa shifokorga murojaat qiling.
+    </p>
+  </div>
+</div>
+
+
+<!-- ════════════════════════════════════
+     SCREEN 2: SYMPTOMS
+════════════════════════════════════ -->
+<div id="screen-symptoms" class="screen no-tabs">
+  <div class="symptoms-header">
+    <h2 style="font-size:18px;font-weight:900">🩺 Belgilar (Shikoyatlar)</h2>
+    <p>O'zingizda bor bo'lgan barcha belgilarni tanlang</p>
+    <span id="selected-count" class="selected-count" style="display:none">0 ta belgi tanlandi</span>
+  </div>
+
+  <div class="symptom-systems" id="symptom-systems">
+    <!-- Rendered by JS -->
+  </div>
+
+  <div class="symptoms-footer">
+    <button id="btn-diagnose" class="btn btn-primary" disabled>
+      🔍 AI Tashxis olish
+    </button>
+    <div style="height:16px"></div>
+  </div>
+</div>
+
+
+<!-- ════════════════════════════════════
+     SCREEN 3: DIAGNOSIS
+════════════════════════════════════ -->
+<div id="screen-diagnosis" class="screen no-tabs">
+  <div class="app-bar">
+    <div class="app-bar-logo">🏥</div>
+    <div>
+      <h1>MedIntel</h1>
+      <p>AI Tashxis natijasi</p>
+    </div>
+  </div>
+  <div class="page-content">
+    <div id="diagnosis-content">
+      <!-- Rendered by JS -->
+    </div>
+  </div>
+</div>
+
+
+<!-- ════════════════════════════════════
+     MAIN APP SCREENS (with tab bar)
+════════════════════════════════════ -->
+
+<!-- HOME -->
+<div id="screen-home" class="screen">
+  <div class="app-bar">
+    <div class="app-bar-logo">🏥</div>
+    <div>
+      <h1>MedIntel</h1>
+      <p id="home-patient-label">Xush kelibsiz</p>
+    </div>
+  </div>
+  <div class="page-content" id="home-content">
+    <!-- Rendered by JS -->
+  </div>
+</div>
+
+<!-- TREATMENT TRACKER -->
+<div id="screen-treat" class="screen">
+  <div id="tracker-content">
+    <!-- Rendered by JS -->
+  </div>
+</div>
+
+<!-- APTEKA -->
+<div id="screen-apteka" class="screen">
+  <div class="app-bar">
+    <div class="app-bar-logo">🏥</div>
+    <div>
+      <h1>Apteka</h1>
+      <p>Yaqin aptekallarni topish</p>
+    </div>
+  </div>
+  <div class="apteka-search">
+    <input
+      id="apteka-search-input"
+      type="text"
+      placeholder="Dori nomi bo'yicha qidirish..."
+    >
+    <button class="btn btn-primary btn-sm" onclick="searchApteka()">🔍</button>
+  </div>
+  <div class="page-content" style="padding-top:14px">
+    <div id="apteka-list">
+      <!-- Rendered by JS -->
+    </div>
+  </div>
+</div>
+
+<!-- PROFILE -->
+<div id="screen-profil" class="screen">
+  <div id="profil-content">
+    <!-- Rendered by JS -->
+  </div>
+</div>
+
+
+<!-- ════════════════════════════════════
+     TAB BAR
+════════════════════════════════════ -->
+<nav id="tab-bar" class="tab-bar" style="display:none">
+  <div class="tab-item active" data-tab="home">
+    <span class="tab-icon">🏠</span>
+    <span>Bosh sahifa</span>
+  </div>
+  <div class="tab-item" data-tab="treat">
+    <span class="tab-icon">💊</span>
+    <span>Davolanish</span>
+  </div>
+  <div class="tab-item" data-tab="apteka">
+    <span class="tab-icon">🏪</span>
+    <span>Apteka</span>
+  </div>
+  <div class="tab-item" data-tab="profil">
+    <span class="tab-icon">👤</span>
+    <span>Profil</span>
+  </div>
+</nav>
+
+
+<!-- ════════════════════════════════════
+     API KEY MODAL
+════════════════════════════════════ -->
+<div id="api-key-modal" style="
+  display:none;
+  position:fixed;inset:0;
+  background:rgba(0,0,0,.5);
+  z-index:1000;
+  align-items:flex-end;
+  justify-content:center;
+">
+  <div style="
+    background:white;
+    border-radius:24px 24px 0 0;
+    padding:28px 20px 32px;
+    width:100%;
+    max-width:430px;
+    animation:fadeIn .25s ease;
+  ">
+    <h3 style="font-size:20px;font-weight:900;margin-bottom:8px">🔑 Gemini API kalit kerak</h3>
+    <p style="font-size:14px;color:var(--text-3);margin-bottom:20px;line-height:1.5">
+      AI tashxis uchun Google Gemini API kaliti kerak.<br>
+      Bepul olish: <strong>aistudio.google.com</strong> → "Get API Key"
+    </p>
+    <div style="margin-bottom:16px">
+      <label style="font-size:13px;font-weight:700;color:var(--text-2);display:block;margin-bottom:8px">
+        API kalitingizni kiriting:
+      </label>
+      <input
+        id="modal-api-key"
+        type="text"
+        placeholder="AIzaSy..."
+        style="
+          width:100%;padding:13px 15px;
+          border:1.5px solid var(--border);
+          border-radius:10px;
+          font-size:15px;
+          font-family:'Nunito',sans-serif;
+          min-height:48px;
+        "
+      >
+    </div>
+    <button class="btn btn-primary" onclick="saveApiKeyModal()" style="margin-bottom:10px">
+      ✓ Saqlash va davom etish
+    </button>
+    <button class="btn btn-secondary" onclick="closeApiKeyModal()">
+      Bekor qilish
+    </button>
+    <p style="font-size:11px;color:var(--text-4);text-align:center;margin-top:12px;line-height:1.5">
+      API kalit faqat qurilmangizda saqlanadi. Hech qayerga yuborilmaydi.
+    </p>
+  </div>
+</div>
+
+
+<!-- ════════════════════════════════════
+     TOAST
+════════════════════════════════════ -->
+<div id="toast" class="toast"></div>
+
+
+<!-- ════════════════════════════════════
+     SCRIPTS
+════════════════════════════════════ -->
+<script src="config.js"></script>
+<script src="app.js"></script>
+
+</body>
+</html>
