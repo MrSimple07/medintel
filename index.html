@@ -1,268 +1,1892 @@
 <!DOCTYPE html>
-<html lang="uz">
+<html lang="uz" data-theme="light">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <meta name="description" content="MedIntel — Uyda davolanish nazorat ostida. AI yordamida tashxis va davolanish rejasi.">
-  <meta name="theme-color" content="#0D9488">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <meta name="apple-mobile-web-app-title" content="MedIntel">
-  <title>MedIntel — Uyda davolanish</title>
-  <link rel="stylesheet" href="style.css">
-  <!-- PWA Manifest -->
-  <link rel="manifest" href="manifest.json">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MedIntel — AI Tibbiy Yordamchi</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,700;1,600&display=swap" rel="stylesheet">
+<style>
+/* ─── TOKENS ─────────────────────────────── */
+:root {
+  --c-teal:   #0D9488;
+  --c-teal2:  #0A7A6F;
+  --c-teal3:  #134E4A;
+  --c-mint:   #CCFBF1;
+  --c-amber:  #F59E0B;
+  --c-red:    #EF4444;
+  --c-green:  #10B981;
+
+  --bg:       #F0F4F8;
+  --bg2:      #FFFFFF;
+  --bg3:      #E8EFF6;
+  --surface:  #FFFFFF;
+  --border:   #DDE3EC;
+  --text:     #0D1B2A;
+  --text2:    #3D5166;
+  --text3:    #7A92A8;
+  --text4:    #B0C4D4;
+
+  --r:        14px;
+  --r2:       20px;
+  --sh:       0 2px 12px rgba(13,26,42,.08);
+  --sh2:      0 8px 32px rgba(13,26,42,.12);
+}
+[data-theme="dark"] {
+  --bg:       #0A0F1C;
+  --bg2:      #111827;
+  --bg3:      #1C2637;
+  --surface:  #1A2333;
+  --border:   #2A3A4E;
+  --text:     #E8F0F8;
+  --text2:    #A0B4C8;
+  --text3:    #546A80;
+  --text4:    #2E4055;
+  --sh:       0 2px 12px rgba(0,0,0,.3);
+  --sh2:      0 8px 32px rgba(0,0,0,.5);
+}
+
+/* ─── RESET ──────────────────────────────── */
+*,*::before,*::after { box-sizing:border-box; margin:0; padding:0 }
+html,body {
+  font-family:'Sora',sans-serif;
+  font-size:15px;
+  background:var(--bg);
+  color:var(--text);
+  width:100%;
+  height:100vh;
+  overflow:hidden;
+  transition:background .25s, color .25s;
+}
+button { font-family:inherit; cursor:pointer; border:none; background:none; outline:none }
+input,select,textarea { font-family:inherit }
+
+/* ─── LAYOUT ─────────────────────────────── */
+#root {
+  display:grid;
+  grid-template-rows:60px 1fr;
+  height:100vh;
+  width:100%;
+}
+
+/* ─── TOP BAR ─────────────────────────────── */
+#topbar {
+  background:var(--surface);
+  border-bottom:1px solid var(--border);
+  display:flex;
+  align-items:center;
+  padding:0 28px;
+  gap:16px;
+  box-shadow:var(--sh);
+  z-index:100;
+}
+.tb-logo {
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+.tb-logo-mark {
+  width:34px; height:34px;
+  background:var(--c-teal);
+  border-radius:10px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:18px;
+  flex-shrink:0;
+}
+.tb-logo h1 {
+  font-family:'Playfair Display',serif;
+  font-size:20px;
+  color:var(--c-teal);
+  letter-spacing:-.3px;
+}
+.tb-sep { width:1px; height:28px; background:var(--border); margin:0 8px }
+#tb-breadcrumb {
+  font-size:13px;
+  color:var(--text3);
+  font-weight:500;
+}
+.tb-spacer { flex:1 }
+
+/* Step indicator */
+#step-indicator {
+  display:flex;
+  align-items:center;
+  gap:6px;
+}
+.step-dot {
+  width:8px; height:8px;
+  border-radius:50%;
+  background:var(--border);
+  transition:all .3s;
+}
+.step-dot.active { background:var(--c-teal); width:24px; border-radius:4px }
+.step-dot.done { background:var(--c-mint); }
+[data-theme="dark"] .step-dot.done { background:#0D9488 }
+
+/* Theme toggle */
+#theme-toggle {
+  width:40px; height:40px;
+  border-radius:50%;
+  background:var(--bg3);
+  border:1.5px solid var(--border);
+  font-size:18px;
+  display:flex; align-items:center; justify-content:center;
+  transition:all .2s;
+}
+#theme-toggle:hover { transform:rotate(20deg); border-color:var(--c-teal) }
+
+/* ─── MAIN AREA ────────────────────────────── */
+#main {
+  overflow:hidden;
+  position:relative;
+}
+
+/* ─── SCREEN ──────────────────────────────── */
+.screen {
+  position:absolute;
+  inset:0;
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+  opacity:0;
+  transform:translateX(40px);
+  pointer-events:none;
+  transition:opacity .35s ease, transform .35s ease;
+}
+.screen.active {
+  opacity:1;
+  transform:translateX(0);
+  pointer-events:all;
+}
+.screen.exit {
+  opacity:0;
+  transform:translateX(-40px);
+  pointer-events:none;
+}
+
+/* ─── SCREEN 1: PATIENT INFO ─────────────── */
+#screen-1 {
+  background:var(--bg);
+  align-items:center;
+  justify-content:center;
+}
+.s1-wrap {
+  display:grid;
+  grid-template-columns:420px 480px;
+  gap:64px;
+  align-items:center;
+  max-width:1000px;
+  width:100%;
+  padding:40px;
+}
+
+.s1-badge {
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  padding:6px 14px;
+  background:var(--c-mint);
+  color:var(--c-teal3);
+  border-radius:20px;
+  font-size:12px;
+  font-weight:700;
+  letter-spacing:.4px;
+  text-transform:uppercase;
+  margin-bottom:24px;
+}
+[data-theme="dark"] .s1-badge { background:rgba(13,148,136,.2); color:#5EEAD4 }
+.s1-left h2 {
+  font-family:'Playfair Display',serif;
+  font-size:48px;
+  line-height:1.1;
+  color:var(--text);
+  margin-bottom:16px;
+}
+.s1-left h2 em { font-style:italic; color:var(--c-teal) }
+.s1-left p {
+  font-size:15px;
+  color:var(--text3);
+  line-height:1.7;
+  margin-bottom:32px;
+}
+.s1-trust {
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+}
+.trust-chip {
+  padding:6px 12px;
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:20px;
+  font-size:12px;
+  font-weight:600;
+  color:var(--text3);
+}
+
+.s1-card {
+  background:var(--surface);
+  border-radius:var(--r2);
+  padding:36px;
+  box-shadow:var(--sh2);
+  border:1px solid var(--border);
+}
+.s1-card h3 {
+  font-size:20px;
+  font-weight:700;
+  margin-bottom:6px;
+  color:var(--text);
+}
+.s1-card > p {
+  font-size:13px;
+  color:var(--text3);
+  margin-bottom:28px;
+}
+.field-group { margin-bottom:20px }
+.field-label {
+  display:block;
+  font-size:11px;
+  font-weight:700;
+  text-transform:uppercase;
+  letter-spacing:.6px;
+  color:var(--text3);
+  margin-bottom:8px;
+}
+.field-input {
+  width:100%;
+  padding:13px 16px;
+  border:1.5px solid var(--border);
+  border-radius:var(--r);
+  font-size:15px;
+  font-weight:500;
+  color:var(--text);
+  background:var(--bg);
+  transition:border-color .2s, box-shadow .2s;
+  min-height:50px;
+}
+.field-input:focus {
+  outline:none;
+  border-color:var(--c-teal);
+  box-shadow:0 0 0 4px rgba(13,148,136,.1);
+  background:var(--surface);
+}
+.field-input::placeholder { color:var(--text4) }
+.gender-row { display:grid; grid-template-columns:1fr 1fr; gap:10px }
+.gender-btn {
+  padding:14px;
+  border:1.5px solid var(--border);
+  border-radius:var(--r);
+  background:var(--bg);
+  font-size:14px;
+  font-weight:600;
+  color:var(--text2);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  cursor:pointer;
+  transition:all .2s;
+  min-height:50px;
+}
+.gender-btn:hover { border-color:var(--c-teal) }
+.gender-btn.selected {
+  border-color:var(--c-teal);
+  background:var(--c-mint);
+  color:var(--c-teal3);
+  font-weight:700;
+}
+[data-theme="dark"] .gender-btn.selected {
+  background:rgba(13,148,136,.15);
+  color:#5EEAD4;
+}
+.start-btn {
+  width:100%;
+  padding:16px;
+  background:var(--c-teal);
+  color:#fff;
+  border-radius:var(--r);
+  font-size:16px;
+  font-weight:700;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:10px;
+  margin-top:28px;
+  transition:all .2s;
+  box-shadow:0 4px 16px rgba(13,148,136,.35);
+}
+.start-btn:hover { background:var(--c-teal2); transform:translateY(-1px); box-shadow:0 6px 20px rgba(13,148,136,.45) }
+.start-btn:active { transform:translateY(0) }
+.s1-disclaimer {
+  font-size:11px;
+  color:var(--text4);
+  text-align:center;
+  margin-top:16px;
+  line-height:1.6;
+}
+
+/* ─── SCREEN 2: SYMPTOMS ─────────────────── */
+#screen-2 {
+  background:var(--bg);
+  display:grid;
+  grid-template-columns:280px 1fr;
+  grid-template-rows:1fr;
+}
+.sym-sidebar {
+  background:var(--surface);
+  border-right:1px solid var(--border);
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+}
+.sym-sidebar-header {
+  padding:24px 20px 16px;
+  border-bottom:1px solid var(--border);
+}
+.sym-sidebar-header h2 {
+  font-size:18px;
+  font-weight:700;
+  color:var(--text);
+  margin-bottom:4px;
+}
+.sym-sidebar-header p {
+  font-size:12px;
+  color:var(--text3);
+  line-height:1.5;
+}
+.sym-count-pill {
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  padding:5px 12px;
+  background:var(--c-mint);
+  color:var(--c-teal3);
+  border-radius:20px;
+  font-size:12px;
+  font-weight:700;
+  margin-top:10px;
+}
+[data-theme="dark"] .sym-count-pill { background:rgba(13,148,136,.2); color:#5EEAD4 }
+.sym-count-pill.hidden { display:none }
+
+.sys-nav {
+  flex:1;
+  overflow-y:auto;
+  padding:10px;
+}
+.sys-nav-item {
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:11px 12px;
+  border-radius:10px;
+  cursor:pointer;
+  transition:all .2s;
+  margin-bottom:2px;
+  position:relative;
+}
+.sys-nav-item:hover { background:var(--bg3) }
+.sys-nav-item.active { background:var(--bg3) }
+.sys-nav-item .sys-icon { font-size:20px; flex-shrink:0; width:28px; text-align:center }
+.sys-nav-label { flex:1; font-size:13px; font-weight:600; color:var(--text2) }
+.sys-nav-item.active .sys-nav-label { color:var(--c-teal) }
+.sys-nav-badge {
+  font-size:10px;
+  font-weight:800;
+  padding:2px 7px;
+  background:var(--c-teal);
+  color:#fff;
+  border-radius:20px;
+  min-width:20px;
+  text-align:center;
+}
+
+.sym-sidebar-footer {
+  padding:16px;
+  border-top:1px solid var(--border);
+}
+.diagnose-btn {
+  width:100%;
+  padding:14px;
+  background:var(--c-teal);
+  color:#fff;
+  border-radius:var(--r);
+  font-size:14px;
+  font-weight:700;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  transition:all .2s;
+  box-shadow:0 4px 12px rgba(13,148,136,.3);
+}
+.diagnose-btn:hover:not(:disabled) { background:var(--c-teal2) }
+.diagnose-btn:disabled { opacity:.4; cursor:not-allowed; box-shadow:none }
+
+.sym-main {
+  overflow-y:auto;
+  padding:28px 32px;
+}
+.sym-section-title {
+  display:flex;
+  align-items:center;
+  gap:14px;
+  margin-bottom:20px;
+}
+.sym-section-icon {
+  width:48px; height:48px;
+  border-radius:14px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:24px;
+  flex-shrink:0;
+}
+.sym-section-title h3 {
+  font-size:20px;
+  font-weight:700;
+  color:var(--text);
+}
+.sym-section-title p {
+  font-size:12px;
+  color:var(--text3);
+  font-weight:500;
+  margin-top:2px;
+}
+.chips-grid {
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+  margin-bottom:32px;
+}
+.chip {
+  padding:9px 18px;
+  border:1.5px solid var(--border);
+  border-radius:24px;
+  font-size:13px;
+  font-weight:600;
+  color:var(--text2);
+  background:var(--surface);
+  cursor:pointer;
+  transition:all .18s;
+  user-select:none;
+}
+.chip:hover { border-color:var(--c-teal); color:var(--c-teal) }
+.chip.selected {
+  background:var(--c-teal);
+  color:#fff;
+  border-color:var(--c-teal);
+  box-shadow:0 2px 8px rgba(13,148,136,.3);
+}
+[data-theme="dark"] .chip { background:var(--bg3) }
+
+/* ─── SCREEN 3: LOADING ──────────────────── */
+#screen-3 {
+  background:var(--bg);
+  align-items:center;
+  justify-content:center;
+}
+.loading-wrap {
+  text-align:center;
+  max-width:420px;
+}
+.pulse-orb {
+  width:100px; height:100px;
+  margin:0 auto 32px;
+  position:relative;
+}
+.p-ring {
+  position:absolute;
+  inset:0;
+  border-radius:50%;
+  border:2px solid var(--c-teal);
+  animation:pulseOut 1.8s ease-out infinite;
+}
+.p-ring:nth-child(2) { animation-delay:.5s }
+.p-ring:nth-child(3) { animation-delay:1s }
+.p-core {
+  position:absolute;
+  inset:22px;
+  background:var(--c-teal);
+  border-radius:50%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:24px;
+}
+@keyframes pulseOut {
+  0% { transform:scale(.6); opacity:1 }
+  100% { transform:scale(2.2); opacity:0 }
+}
+.loading-wrap h3 {
+  font-size:22px;
+  font-weight:700;
+  color:var(--text);
+  margin-bottom:8px;
+}
+.loading-wrap p {
+  font-size:14px;
+  color:var(--text3);
+  line-height:1.7;
+}
+#loading-status {
+  margin-top:20px;
+  padding:10px 20px;
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:10px;
+  font-size:12px;
+  font-weight:600;
+  color:var(--c-teal);
+  font-family:monospace;
+  min-height:40px;
+}
+
+/* ─── SCREEN 4: DIAGNOSIS ────────────────── */
+#screen-4 {
+  background:var(--bg);
+  overflow-y:auto;
+}
+.diag-layout {
+  display:grid;
+  grid-template-columns:340px 1fr;
+  min-height:100%;
+}
+.diag-sidebar {
+  background:linear-gradient(160deg, var(--c-teal) 0%, #047857 100%);
+  padding:36px 28px;
+  color:#fff;
+  position:sticky;
+  top:0;
+  align-self:start;
+  min-height:100%;
+}
+.diag-label {
+  font-size:10px;
+  font-weight:700;
+  text-transform:uppercase;
+  letter-spacing:.8px;
+  opacity:.7;
+  margin-bottom:12px;
+}
+.diag-title {
+  font-family:'Playfair Display',serif;
+  font-size:30px;
+  line-height:1.2;
+  margin-bottom:14px;
+}
+.diag-desc {
+  font-size:13px;
+  opacity:.85;
+  line-height:1.7;
+  margin-bottom:24px;
+}
+.diag-pills {
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  margin-bottom:28px;
+}
+.diag-pill {
+  padding:5px 12px;
+  background:rgba(255,255,255,.18);
+  border-radius:20px;
+  font-size:12px;
+  font-weight:600;
+  backdrop-filter:blur(4px);
+}
+.diag-actions { display:flex; flex-direction:column; gap:10px; margin-top:auto }
+.btn-back {
+  padding:13px;
+  background:rgba(255,255,255,.15);
+  border:1.5px solid rgba(255,255,255,.25);
+  border-radius:var(--r);
+  color:#fff;
+  font-size:14px;
+  font-weight:700;
+  cursor:pointer;
+  transition:background .2s;
+}
+.btn-back:hover { background:rgba(255,255,255,.25) }
+.btn-goto-treat {
+  padding:13px;
+  background:#fff;
+  color:var(--c-teal3);
+  border-radius:var(--r);
+  font-size:14px;
+  font-weight:700;
+  cursor:pointer;
+  transition:opacity .2s;
+}
+.btn-goto-treat:hover { opacity:.9 }
+
+.diag-body {
+  padding:36px;
+  overflow-y:auto;
+}
+.diag-section {
+  margin-bottom:28px;
+}
+.sec-title {
+  font-size:11px;
+  font-weight:800;
+  text-transform:uppercase;
+  letter-spacing:.8px;
+  color:var(--text3);
+  margin-bottom:14px;
+}
+.rx-item {
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--r);
+  padding:16px;
+  margin-bottom:10px;
+  display:grid;
+  grid-template-columns:auto 1fr;
+  gap:14px;
+  align-items:start;
+}
+.rx-icon {
+  width:40px; height:40px;
+  background:rgba(13,148,136,.1);
+  border-radius:10px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:20px;
+  flex-shrink:0;
+}
+.rx-name { font-size:15px; font-weight:700; color:var(--text); margin-bottom:8px }
+.rx-grid { display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:6px }
+.rx-field {
+  background:var(--bg3);
+  border-radius:8px;
+  padding:7px 10px;
+}
+.rx-fl { font-size:10px; font-weight:700; color:var(--text3); text-transform:uppercase; letter-spacing:.4px; margin-bottom:2px }
+.rx-fv { font-size:12px; font-weight:700; color:var(--text) }
+.diet-box {
+  background:linear-gradient(135deg,#FFFBEB 0%,#FEF3C7 100%);
+  border:1.5px solid #FDE68A;
+  border-radius:var(--r);
+  padding:18px;
+  display:flex;
+  gap:14px;
+  align-items:flex-start;
+}
+[data-theme="dark"] .diet-box { background:rgba(245,158,11,.08); border-color:rgba(245,158,11,.2) }
+.diet-num {
+  width:48px; height:48px;
+  background:#F59E0B;
+  border-radius:12px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-family:'Playfair Display',serif;
+  font-size:24px;
+  color:#fff;
+  flex-shrink:0;
+}
+.diet-info h4 { font-size:15px; font-weight:700; color:#92400E; margin-bottom:4px }
+[data-theme="dark"] .diet-info h4 { color:#FCD34D }
+.diet-info p { font-size:13px; color:#78350F; line-height:1.6 }
+[data-theme="dark"] .diet-info p { color:#FDE68A }
+.rec-list { list-style:none; display:flex; flex-direction:column; gap:8px }
+.rec-list li {
+  display:flex;
+  gap:10px;
+  font-size:13px;
+  color:var(--text2);
+  padding:10px 12px;
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:10px;
+  align-items:flex-start;
+  line-height:1.5;
+}
+.rec-dot {
+  width:20px; height:20px;
+  background:var(--c-teal);
+  border-radius:50%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  color:#fff;
+  font-size:10px;
+  font-weight:900;
+  flex-shrink:0;
+  margin-top:1px;
+}
+
+/* Emergency */
+.emergency-wrap {
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  min-height:100%;
+  padding:40px;
+}
+.emergency-card {
+  background:var(--surface);
+  border:2px solid #FECACA;
+  border-radius:var(--r2);
+  padding:40px 48px;
+  text-align:center;
+  max-width:480px;
+}
+[data-theme="dark"] .emergency-card { border-color:rgba(239,68,68,.3) }
+.emergency-card .e-icon { font-size:64px; margin-bottom:20px }
+.emergency-card h2 { font-size:26px; font-weight:800; color:var(--c-red); margin-bottom:12px }
+.emergency-card p { font-size:14px; color:var(--text2); line-height:1.7; margin-bottom:28px }
+.btn-sos {
+  width:100%;
+  padding:16px;
+  background:var(--c-red);
+  color:#fff;
+  border-radius:var(--r);
+  font-size:16px;
+  font-weight:800;
+  cursor:pointer;
+  margin-bottom:10px;
+  transition:opacity .2s;
+}
+.btn-sos:hover { opacity:.9 }
+.btn-sos-back {
+  width:100%;
+  padding:13px;
+  background:var(--bg3);
+  color:var(--text2);
+  border-radius:var(--r);
+  font-size:14px;
+  font-weight:600;
+  cursor:pointer;
+  transition:opacity .2s;
+}
+.btn-sos-back:hover { opacity:.8 }
+
+/* ─── SCREEN 5: TRACKER ──────────────────── */
+#screen-5 {
+  background:var(--bg);
+  display:grid;
+  grid-template-columns:300px 1fr;
+  overflow:hidden;
+}
+.track-sidebar {
+  background:linear-gradient(160deg, var(--c-teal) 0%, var(--c-teal3) 100%);
+  color:#fff;
+  padding:32px 24px;
+  display:flex;
+  flex-direction:column;
+  overflow-y:auto;
+}
+.track-sidebar h2 {
+  font-family:'Playfair Display',serif;
+  font-size:26px;
+  margin-bottom:8px;
+}
+.track-sidebar .sub { font-size:13px; opacity:.8; margin-bottom:24px; line-height:1.5 }
+.prog-box { margin-bottom:28px }
+.prog-top { display:flex; justify-content:space-between; font-size:11px; font-weight:700; opacity:.8; margin-bottom:8px }
+.prog-track { height:7px; background:rgba(255,255,255,.2); border-radius:4px }
+.prog-fill { height:100%; background:#fff; border-radius:4px; transition:width .6s ease }
+.day-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:20px }
+.day-stat {
+  background:rgba(255,255,255,.12);
+  border-radius:12px;
+  padding:14px;
+  text-align:center;
+}
+.day-stat-n { font-size:24px; font-weight:800; display:block }
+.day-stat-l { font-size:11px; opacity:.7; font-weight:600 }
+.btn-new-diag {
+  margin-top:auto;
+  padding:13px;
+  background:rgba(255,255,255,.15);
+  border:1.5px solid rgba(255,255,255,.25);
+  border-radius:var(--r);
+  color:#fff;
+  font-size:14px;
+  font-weight:700;
+  cursor:pointer;
+  transition:background .2s;
+}
+.btn-new-diag:hover { background:rgba(255,255,255,.25) }
+.track-body { overflow-y:auto; padding:28px 32px }
+.track-card {
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--r2);
+  padding:22px;
+  margin-bottom:16px;
+  box-shadow:var(--sh);
+}
+.track-card-title {
+  font-size:12px;
+  font-weight:800;
+  text-transform:uppercase;
+  letter-spacing:.7px;
+  color:var(--text3);
+  margin-bottom:16px;
+}
+.med-list { display:flex; flex-direction:column; gap:8px }
+.med-row {
+  display:flex;
+  align-items:center;
+  gap:12px;
+  padding:12px 14px;
+  border:1.5px solid var(--border);
+  border-radius:12px;
+  cursor:pointer;
+  background:var(--bg);
+  transition:all .2s;
+  user-select:none;
+}
+[data-theme="dark"] .med-row { background:var(--bg3) }
+.med-row:hover { border-color:var(--c-teal) }
+.med-row.checked { border-color:var(--c-teal); background:rgba(13,148,136,.05) }
+.med-cb {
+  width:24px; height:24px;
+  border:2px solid var(--border);
+  border-radius:6px;
+  display:flex; align-items:center; justify-content:center;
+  flex-shrink:0;
+  font-size:13px;
+  transition:all .2s;
+}
+.med-row.checked .med-cb { background:var(--c-teal); border-color:var(--c-teal); color:#fff }
+.med-info { flex:1 }
+.med-name { font-size:14px; font-weight:700; color:var(--text) }
+.med-meta { font-size:11px; color:var(--text3); margin-top:2px; font-weight:500 }
+.med-tag { font-size:11px; font-weight:700; color:var(--c-teal); background:rgba(13,148,136,.08); padding:3px 9px; border-radius:20px }
+
+.ahvol-row { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px }
+.ahvol-btn {
+  padding:16px 8px;
+  border:1.5px solid var(--border);
+  border-radius:12px;
+  background:var(--bg);
+  cursor:pointer;
+  text-align:center;
+  transition:all .2s;
+  font-size:12px;
+  font-weight:700;
+  color:var(--text3);
+}
+[data-theme="dark"] .ahvol-btn { background:var(--bg3) }
+.ahvol-btn span { display:block; font-size:26px; margin-bottom:8px }
+.ahvol-btn.s-yaxshi { border-color:#10B981; background:#ECFDF5; color:#065F46 }
+.ahvol-btn.s-xuddi  { border-color:#F59E0B; background:#FFFBEB; color:#92400E }
+.ahvol-btn.s-yomon  { border-color:#EF4444; background:#FEF2F2; color:#991B1B }
+[data-theme="dark"] .ahvol-btn.s-yaxshi { background:rgba(16,185,129,.12); color:#6EE7B7 }
+[data-theme="dark"] .ahvol-btn.s-xuddi  { background:rgba(245,158,11,.12); color:#FCD34D }
+[data-theme="dark"] .ahvol-btn.s-yomon  { background:rgba(239,68,68,.12); color:#FCA5A5 }
+.warn-box {
+  display:none;
+  margin-top:12px;
+  padding:12px 14px;
+  background:#FFF7ED;
+  border:1.5px solid #FED7AA;
+  border-radius:10px;
+  display:none;
+  align-items:flex-start;
+  gap:10px;
+  font-size:13px;
+  font-weight:600;
+  color:#9A3412;
+  line-height:1.4;
+}
+[data-theme="dark"] .warn-box { background:rgba(249,115,22,.08); border-color:rgba(249,115,22,.3); color:#FB923C }
+
+/* ─── SCREEN 6: NO TREATMENT ─────────────── */
+#screen-5-empty {
+  background:var(--bg);
+  align-items:center;
+  justify-content:center;
+  flex-direction:column;
+  text-align:center;
+  gap:20px;
+  padding:40px;
+}
+#screen-5-empty h2 {
+  font-family:'Playfair Display',serif;
+  font-size:32px;
+}
+#screen-5-empty p { font-size:14px; color:var(--text3); max-width:360px; line-height:1.7 }
+
+/* ─── DEBUG PANEL ─────────────────────────── */
+#debug-panel {
+  position:fixed;
+  bottom:20px;
+  right:20px;
+  width:380px;
+  max-height:300px;
+  background:rgba(0,0,0,.9);
+  border:1px solid #333;
+  border-radius:12px;
+  padding:12px 14px;
+  font-family:monospace;
+  font-size:11px;
+  color:#00ff88;
+  overflow-y:auto;
+  z-index:9999;
+  display:none;
+}
+#debug-panel .debug-title {
+  color:#fff;
+  font-weight:bold;
+  margin-bottom:8px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+#debug-panel .debug-title button {
+  color:#999;
+  font-size:11px;
+  cursor:pointer;
+  background:none;
+  border:none;
+}
+.debug-line { margin-bottom:4px; word-break:break-all; line-height:1.4 }
+.debug-line.err { color:#ff6666 }
+.debug-line.warn { color:#ffcc00 }
+.debug-line.ok { color:#00ff88 }
+.debug-line.info { color:#66ccff }
+
+#debug-toggle {
+  position:fixed;
+  bottom:20px;
+  right:420px;
+  padding:6px 14px;
+  background:#111;
+  border:1px solid #444;
+  border-radius:20px;
+  color:#00ff88;
+  font-family:monospace;
+  font-size:12px;
+  cursor:pointer;
+  z-index:9999;
+}
+
+/* ─── TOAST ──────────────────────────────── */
+#toast {
+  position:fixed;
+  bottom:28px;
+  left:50%;
+  transform:translateX(-50%) translateY(20px);
+  background:var(--text);
+  color:var(--bg);
+  padding:11px 22px;
+  border-radius:24px;
+  font-size:13px;
+  font-weight:700;
+  opacity:0;
+  transition:all .3s;
+  pointer-events:none;
+  z-index:999;
+  white-space:nowrap;
+}
+#toast.show { opacity:1; transform:translateX(-50%) translateY(0) }
+
+/* ─── API MODAL ──────────────────────────── */
+#api-modal {
+  display:none;
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.5);
+  z-index:1000;
+  align-items:center;
+  justify-content:center;
+  backdrop-filter:blur(4px);
+}
+#api-modal.open { display:flex }
+.modal-box {
+  background:var(--surface);
+  border-radius:var(--r2);
+  padding:36px;
+  width:100%;
+  max-width:480px;
+  box-shadow:var(--sh2);
+  border:1px solid var(--border);
+  animation:modalIn .3s ease;
+}
+@keyframes modalIn { from { transform:scale(.95); opacity:0 } to { transform:scale(1); opacity:1 } }
+.modal-box h3 { font-size:20px; font-weight:700; margin-bottom:8px }
+.modal-box p { font-size:13px; color:var(--text3); margin-bottom:24px; line-height:1.6 }
+.modal-box input {
+  width:100%;
+  padding:13px 16px;
+  border:1.5px solid var(--border);
+  border-radius:var(--r);
+  font-size:14px;
+  color:var(--text);
+  background:var(--bg);
+  margin-bottom:14px;
+  min-height:50px;
+}
+.modal-box input:focus { outline:none; border-color:var(--c-teal) }
+.modal-btn-row { display:grid; grid-template-columns:1fr 1fr; gap:10px }
+.m-btn-save {
+  padding:13px;
+  background:var(--c-teal);
+  color:#fff;
+  border-radius:var(--r);
+  font-size:14px;
+  font-weight:700;
+  cursor:pointer;
+  transition:background .2s;
+}
+.m-btn-save:hover { background:var(--c-teal2) }
+.m-btn-cancel {
+  padding:13px;
+  background:var(--bg3);
+  color:var(--text2);
+  border-radius:var(--r);
+  font-size:14px;
+  font-weight:600;
+  cursor:pointer;
+  transition:opacity .2s;
+}
+.m-btn-cancel:hover { opacity:.8 }
+.modal-note { font-size:11px; color:var(--text4); text-align:center; margin-top:12px; line-height:1.5 }
+</style>
 </head>
 <body>
 
-<!-- ════════════════════════════════════
-     SCREEN 1: ONBOARDING
-════════════════════════════════════ -->
-<div id="screen-onboarding" class="screen no-tabs active">
-  <div class="onboarding-hero">
-    <div class="hero-icon">🏥</div>
-    <h1>MedIntel</h1>
-    <p>Uyda davolanish — nazorat ostida<br>AI yordamida tashxis va davo rejasi</p>
-  </div>
-
-  <div class="onboarding-form">
-    <div class="form-group">
-      <label class="form-label" for="input-name">Ismingiz</label>
-      <input
-        id="input-name"
-        class="form-input"
-        type="text"
-        placeholder="Masalan: Aziz Karimov"
-        autocomplete="given-name"
-        maxlength="50"
-      >
+<div id="root">
+  <!-- TOP BAR -->
+  <header id="topbar">
+    <div class="tb-logo">
+      <div class="tb-logo-mark">🏥</div>
+      <h1>MedIntel</h1>
     </div>
+    <div class="tb-sep"></div>
+    <span id="tb-breadcrumb">Xush kelibsiz</span>
+    <div class="tb-spacer"></div>
+    <div id="step-indicator"></div>
+    <div style="width:16px"></div>
+    <button id="theme-toggle" onclick="toggleTheme()" title="Mavzu o'zgartirish">🌙</button>
+  </header>
 
-    <div class="form-group">
-      <label class="form-label" for="input-age">Yoshingiz</label>
-      <input
-        id="input-age"
-        class="form-input"
-        type="number"
-        placeholder="Masalan: 28"
-        min="1" max="120"
-        inputmode="numeric"
-      >
-    </div>
+  <!-- MAIN -->
+  <main id="main">
 
-    <div class="form-group">
-      <label class="form-label">Jins</label>
-      <div class="gender-group">
-        <button class="gender-btn" data-gender="erkak">👨 Erkak</button>
-        <button class="gender-btn" data-gender="ayol">👩 Ayol</button>
+    <!-- ── SCREEN 1: PATIENT INFO ── -->
+    <div id="screen-1" class="screen active">
+      <div class="s1-wrap">
+        <div class="s1-left">
+          <div class="s1-badge">🤖 AI Tibbiy Yordamchi</div>
+          <h2>Sog'liqni<br><em>nazorat qiling</em></h2>
+          <p>Simptomlaringizni kiriting va sun'iy intellekt yordamida tashxis hamda davolanish rejasini oling.</p>
+          <div class="s1-trust">
+            <span class="trust-chip">🔒 Xavfsiz</span>
+            <span class="trust-chip">📱 Offline ishlaydi</span>
+            <span class="trust-chip">🤖 Gemini AI</span>
+            <span class="trust-chip">⚡ Tez tashxis</span>
+          </div>
+        </div>
+        <div class="s1-card">
+          <h3>Ma'lumotlaringizni kiriting</h3>
+          <p>Aniqroq tashxis uchun to'g'ri ma'lumot kiriting</p>
+          <div class="field-group">
+            <label class="field-label">Ismingiz</label>
+            <input id="inp-name" class="field-input" type="text" placeholder="Masalan: Aziz Karimov" maxlength="50" autocomplete="given-name">
+          </div>
+          <div class="field-group">
+            <label class="field-label">Yoshingiz</label>
+            <input id="inp-age" class="field-input" type="number" placeholder="28" min="1" max="120" inputmode="numeric">
+          </div>
+          <div class="field-group">
+            <label class="field-label">Jins</label>
+            <div class="gender-row">
+              <button class="gender-btn" data-gender="erkak">👨 Erkak</button>
+              <button class="gender-btn" data-gender="ayol">👩 Ayol</button>
+            </div>
+          </div>
+          <button id="btn-start" class="start-btn">Boshlash <span>→</span></button>
+          <p class="s1-disclaimer">⚠️ Bu ilova tibbiy maslahat o'rnini bosa olmaydi. Jiddiy belgilar bo'lsa shifokorga murojaat qiling.</p>
+        </div>
       </div>
     </div>
-  </div>
 
-  <div class="onboarding-footer">
-    <div class="trust-badges">
-      <div class="badge">🔒 Xavfsiz</div>
-      <div class="badge">📱 Offline ishlaydi</div>
-      <div class="badge">🤖 AI tahlil</div>
+    <!-- ── SCREEN 2: SYMPTOMS ── -->
+    <div id="screen-2" class="screen">
+      <div class="sym-sidebar">
+        <div class="sym-sidebar-header">
+          <h2>🩺 Belgilar</h2>
+          <p>O'zingizda bor barcha belgilarni tanlang</p>
+          <div id="sym-count-pill" class="sym-count-pill hidden">✓ <span id="sym-count-text">0 ta tanlandi</span></div>
+        </div>
+        <div class="sys-nav" id="sys-nav"></div>
+        <div class="sym-sidebar-footer">
+          <button id="btn-diagnose" class="diagnose-btn" disabled onclick="runDiagnosis()">🔍 AI Tashxis olish</button>
+        </div>
+      </div>
+      <div class="sym-main" id="sym-main-content"></div>
     </div>
-    <button id="btn-start" class="btn btn-primary">
-      Boshlash →
-    </button>
-    <p style="font-size:11px;color:var(--text-4);text-align:center;margin-top:12px;line-height:1.5;padding:0 10px">
-      Bu ilova tibbiy maslahat o'rnini bosa olmaydi. Jiddiy belgilar bo'lsa shifokorga murojaat qiling.
-    </p>
-  </div>
-</div>
 
-
-<!-- ════════════════════════════════════
-     SCREEN 2: SYMPTOMS
-════════════════════════════════════ -->
-<div id="screen-symptoms" class="screen no-tabs">
-  <div class="symptoms-header">
-    <h2 style="font-size:18px;font-weight:900">🩺 Belgilar (Shikoyatlar)</h2>
-    <p>O'zingizda bor bo'lgan barcha belgilarni tanlang</p>
-    <span id="selected-count" class="selected-count" style="display:none">0 ta belgi tanlandi</span>
-  </div>
-
-  <div class="symptom-systems" id="symptom-systems">
-    <!-- Rendered by JS -->
-  </div>
-
-  <div class="symptoms-footer">
-    <button id="btn-diagnose" class="btn btn-primary" disabled>
-      🔍 AI Tashxis olish
-    </button>
-    <div style="height:16px"></div>
-  </div>
-</div>
-
-
-<!-- ════════════════════════════════════
-     SCREEN 3: DIAGNOSIS
-════════════════════════════════════ -->
-<div id="screen-diagnosis" class="screen no-tabs">
-  <div class="app-bar">
-    <div class="app-bar-logo">🏥</div>
-    <div>
-      <h1>MedIntel</h1>
-      <p>AI Tashxis natijasi</p>
+    <!-- ── SCREEN 3: LOADING ── -->
+    <div id="screen-3" class="screen">
+      <div class="loading-wrap">
+        <div class="pulse-orb">
+          <div class="p-ring"></div><div class="p-ring"></div><div class="p-ring"></div>
+          <div class="p-core">🤖</div>
+        </div>
+        <h3>Tahlil qilinmoqda...</h3>
+        <p>Sun'iy intellekt simptomlaringizni tahlil qilmoqda.<br>Biroz kuting...</p>
+        <div id="loading-status">API ulanmoqda...</div>
+      </div>
     </div>
-  </div>
-  <div class="page-content">
-    <div id="diagnosis-content">
-      <!-- Rendered by JS -->
+
+    <!-- ── SCREEN 4: DIAGNOSIS ── -->
+    <div id="screen-4" class="screen">
+      <div id="diag-inner"></div>
     </div>
-  </div>
+
+    <!-- ── SCREEN 5: TRACKER ── -->
+    <div id="screen-5" class="screen" style="display:none"></div>
+
+  </main>
 </div>
 
-
-<!-- ════════════════════════════════════
-     MAIN APP SCREENS (with tab bar)
-════════════════════════════════════ -->
-
-<!-- HOME -->
-<div id="screen-home" class="screen">
-  <div class="app-bar">
-    <div class="app-bar-logo">🏥</div>
-    <div>
-      <h1>MedIntel</h1>
-      <p id="home-patient-label">Xush kelibsiz</p>
+<!-- API MODAL -->
+<div id="api-modal">
+  <div class="modal-box">
+    <h3>🔑 Gemini API kalit kerak</h3>
+    <p>AI tashxis uchun Google Gemini API kaliti kerak.<br>Bepul olish: <strong>aistudio.google.com</strong> → "Get API Key"</p>
+    <input id="modal-api-key" type="text" placeholder="AIzaSy...">
+    <div class="modal-btn-row">
+      <button class="m-btn-save" onclick="saveApiKeyModal()">✓ Saqlash</button>
+      <button class="m-btn-cancel" onclick="closeApiModal()">Bekor qilish</button>
     </div>
-  </div>
-  <div class="page-content" id="home-content">
-    <!-- Rendered by JS -->
+    <p class="modal-note">API kalit faqat qurilmangizda saqlanadi. Hech qaerga yuborilmaydi.</p>
   </div>
 </div>
 
-<!-- TREATMENT TRACKER -->
-<div id="screen-treat" class="screen">
-  <div id="tracker-content">
-    <!-- Rendered by JS -->
+<!-- TOAST -->
+<div id="toast"></div>
+
+<!-- DEBUG -->
+<button id="debug-toggle" onclick="toggleDebug()">🐛 Debug</button>
+<div id="debug-panel">
+  <div class="debug-title">
+    <span>🐛 API Debug Log</span>
+    <button onclick="clearDebug()">Tozalash</button>
   </div>
+  <div id="debug-lines"></div>
 </div>
 
-<!-- APTEKA -->
-<div id="screen-apteka" class="screen">
-  <div class="app-bar">
-    <div class="app-bar-logo">🏥</div>
-    <div>
-      <h1>Apteka</h1>
-      <p>Yaqin aptekallarni topish</p>
+<script>
+/* ═══════════════════════════════════════
+   STATE
+═══════════════════════════════════════ */
+let patientData   = null;
+let treatmentData = null;
+let selectedSymptoms = new Set();
+let currentScreen = 'screen-1';
+let isDark = false;
+
+/* ═══════════════════════════════════════
+   SYMPTOM DATA
+═══════════════════════════════════════ */
+const SYSTEMS = [
+  { id:'nafas',    icon:'🫁', name:'Nafas olish tizimi',        bg:'#EFF6FF', symptoms:["Yo'tal","Isitma","Tomoq og'rig'i","Burun bitishi","Nafas yetishmovchilik","Xansirash","Balg'am ajralishi","Terlash"] },
+  { id:'yurak',    icon:'❤️', name:'Yurak-qon tomirlar',        bg:'#FFF1F2', symptoms:["Ko'krakda og'riq","Qon bosimi oshishi","Qon bosimi tushishi","Yurak tez urishi","Yurak sekin urishi","Tanada shishlar","Siyanoz"] },
+  { id:'hazm',     icon:'🫃', name:'Ovqat hazm qilish',         bg:'#FFFBEB', symptoms:["Ich qotishi","Ich ketishi","Qorin og'rig'i","Ovqat hazm buzilishi","Meteorizam","Ishtaha pasayishi","Ozib ketish","Ko'ngil aynishi","Qayt qilish"] },
+  { id:'siydik',   icon:'🫘', name:'Siydik-ayirish tizimi',     bg:'#F0FDF4', symptoms:["Tez-tez siydish","Og'riqli siydish","Siydik rangi o'zgarishi","Bel sohasida og'riq","Kam siydish"] },
+  { id:'immun',    icon:'🛡️', name:'Immun tizim',               bg:'#F0FDF4', symptoms:["Terida toshma","Qichishish","Limfa bezlari kattalashishi","Holsizlik","Allergik reaktsiya"] },
+  { id:'nerv',     icon:'🧠', name:'Nerv tizimi',               bg:'#FAF5FF', symptoms:["Uyqu buzilishi","Kayfiyat buzilishi","Bosh og'rig'i","Bosh aylanishi","Ko'ruv pasayishi","Eslab tuta olmaslik"] }
+];
+
+/* ═══════════════════════════════════════
+   DEBUG
+═══════════════════════════════════════ */
+function log(msg, type = 'info') {
+  console.log(`[MedIntel][${type.toUpperCase()}]`, msg);
+  const el = document.getElementById('debug-lines');
+  if (!el) return;
+  const line = document.createElement('div');
+  line.className = `debug-line ${type}`;
+  const time = new Date().toLocaleTimeString();
+  line.textContent = `[${time}] ${msg}`;
+  el.appendChild(line);
+  el.scrollTop = el.scrollHeight;
+}
+function toggleDebug() {
+  const p = document.getElementById('debug-panel');
+  p.style.display = p.style.display === 'none' ? 'block' : 'none';
+}
+function clearDebug() {
+  document.getElementById('debug-lines').innerHTML = '';
+}
+
+/* ═══════════════════════════════════════
+   INIT
+═══════════════════════════════════════ */
+document.addEventListener('DOMContentLoaded', () => {
+  log('App initializing...', 'info');
+  loadStorage();
+  applyTheme();
+  renderSymptomUI();
+  setupListeners();
+
+  if (patientData?.name) {
+    log(`Returning user: ${patientData.name}`, 'ok');
+    if (treatmentData) {
+      goToScreen('screen-5');
+      renderTracker();
+    } else {
+      goToScreen('screen-2');
+    }
+  } else {
+    log('New user — showing onboarding', 'info');
+    goToScreen('screen-1');
+  }
+  updateStepIndicator();
+});
+
+function loadStorage() {
+  try {
+    const p = localStorage.getItem('mi_patient');
+    if (p) { patientData = JSON.parse(p); log('Patient data loaded from storage', 'ok'); }
+    const t = localStorage.getItem('mi_treatment');
+    if (t) { treatmentData = JSON.parse(t); log('Treatment data loaded from storage', 'ok'); }
+    isDark = localStorage.getItem('mi_theme') === 'dark';
+  } catch(e) { log('Storage load error: ' + e.message, 'err') }
+}
+
+/* ═══════════════════════════════════════
+   THEME
+═══════════════════════════════════════ */
+function applyTheme() {
+  document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+  document.getElementById('theme-toggle').textContent = isDark ? '☀️' : '🌙';
+  log(`Theme: ${isDark ? 'dark' : 'light'}`, 'info');
+}
+function toggleTheme() {
+  isDark = !isDark;
+  localStorage.setItem('mi_theme', isDark ? 'dark' : 'light');
+  applyTheme();
+}
+
+/* ═══════════════════════════════════════
+   SCREEN NAVIGATION
+═══════════════════════════════════════ */
+const SCREEN_LABELS = {
+  'screen-1': 'Bemor Ma\'lumotlari',
+  'screen-2': 'Belgilarni Tanlash',
+  'screen-3': 'Tahlil qilinmoqda...',
+  'screen-4': 'Tashxis Natijasi',
+  'screen-5': 'Davolanish Rejasi'
+};
+const SCREEN_STEPS = ['screen-1','screen-2','screen-3','screen-4'];
+
+function goToScreen(id) {
+  log(`Navigating: ${currentScreen} → ${id}`, 'info');
+  const prev = document.getElementById(currentScreen);
+  const next = document.getElementById(id);
+  if (!next) { log('Screen not found: ' + id, 'err'); return; }
+
+  if (prev && prev.id !== id) {
+    prev.classList.remove('active');
+    prev.classList.add('exit');
+    setTimeout(() => prev.classList.remove('exit'), 400);
+  }
+  next.style.display = 'flex';
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      next.classList.add('active');
+    });
+  });
+  currentScreen = id;
+  document.getElementById('tb-breadcrumb').textContent = SCREEN_LABELS[id] || 'MedIntel';
+  updateStepIndicator();
+}
+
+function updateStepIndicator() {
+  const container = document.getElementById('step-indicator');
+  const idx = SCREEN_STEPS.indexOf(currentScreen);
+  if (idx < 0) { container.innerHTML = ''; return; }
+  container.innerHTML = SCREEN_STEPS.map((s, i) => {
+    let cls = 'step-dot';
+    if (i < idx) cls += ' done';
+    else if (i === idx) cls += ' active';
+    return `<div class="${cls}"></div>`;
+  }).join('');
+}
+
+/* ═══════════════════════════════════════
+   LISTENERS
+═══════════════════════════════════════ */
+function setupListeners() {
+  document.querySelectorAll('.gender-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.gender-btn').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+    });
+  });
+  document.getElementById('btn-start').addEventListener('click', handleStart);
+  document.getElementById('inp-age').addEventListener('keydown', e => { if (e.key === 'Enter') handleStart() });
+  document.getElementById('inp-name').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('inp-age').focus() });
+}
+
+/* ═══════════════════════════════════════
+   ONBOARDING → SYMPTOMS
+═══════════════════════════════════════ */
+function handleStart() {
+  const name = document.getElementById('inp-name').value.trim();
+  const age  = document.getElementById('inp-age').value.trim();
+  const gBtn = document.querySelector('.gender-btn.selected');
+
+  if (!name) { showToast('Iltimos, ismingizni kiriting'); return; }
+  if (!age || isNaN(age) || +age < 1 || +age > 120) { showToast("Yoshingizni to'g'ri kiriting (1-120)"); return; }
+  if (!gBtn) { showToast('Jinsni tanlang'); return; }
+
+  patientData = { name, age: +age, gender: gBtn.dataset.gender };
+  localStorage.setItem('mi_patient', JSON.stringify(patientData));
+  log(`Patient saved: ${name}, ${age}y, ${gBtn.dataset.gender}`, 'ok');
+
+  selectedSymptoms.clear();
+  updateSymptomCounts();
+  goToScreen('screen-2');
+}
+
+/* ═══════════════════════════════════════
+   SYMPTOM UI
+═══════════════════════════════════════ */
+let activeSystemIdx = 0;
+
+function renderSymptomUI() {
+  renderSysNav();
+  renderSysContent(0);
+}
+
+function renderSysNav() {
+  const nav = document.getElementById('sys-nav');
+  nav.innerHTML = SYSTEMS.map((s, i) => `
+    <div class="sys-nav-item ${i === 0 ? 'active' : ''}" onclick="switchSystem(${i})" id="nav-${s.id}">
+      <span class="sys-icon">${s.icon}</span>
+      <span class="sys-nav-label">${s.name}</span>
+      <span class="sys-nav-badge" id="nbadge-${s.id}" style="display:none">0</span>
+    </div>`).join('');
+}
+
+function renderSysContent(idx) {
+  activeSystemIdx = idx;
+  const sys = SYSTEMS[idx];
+  const content = document.getElementById('sym-main-content');
+  content.innerHTML = `
+    <div class="sym-section-title">
+      <div class="sym-section-icon" style="background:${sys.bg}">${sys.icon}</div>
+      <div>
+        <h3>${sys.name}</h3>
+        <p>${sys.symptoms.length} ta belgi mavjud</p>
+      </div>
     </div>
-  </div>
-  <div class="apteka-search">
-    <input
-      id="apteka-search-input"
-      type="text"
-      placeholder="Dori nomi bo'yicha qidirish..."
-    >
-    <button class="btn btn-primary btn-sm" onclick="searchApteka()">🔍</button>
-  </div>
-  <div class="page-content" style="padding-top:14px">
-    <div id="apteka-list">
-      <!-- Rendered by JS -->
+    <div class="chips-grid">
+      ${sys.symptoms.map(s => `
+        <div class="chip ${selectedSymptoms.has(s) ? 'selected' : ''}"
+             onclick="toggleSymptom('${s.replace(/'/g, "\\'")}', this)">
+          ${s}
+        </div>`).join('')}
+    </div>`;
+}
+
+function switchSystem(idx) {
+  activeSystemIdx = idx;
+  document.querySelectorAll('.sys-nav-item').forEach((el, i) => {
+    el.classList.toggle('active', i === idx);
+  });
+  renderSysContent(idx);
+}
+
+function toggleSymptom(symptom, chip) {
+  if (selectedSymptoms.has(symptom)) {
+    selectedSymptoms.delete(symptom);
+    chip.classList.remove('selected');
+  } else {
+    selectedSymptoms.add(symptom);
+    chip.classList.add('selected');
+  }
+  updateSymptomCounts();
+}
+
+function updateSymptomCounts() {
+  const total = selectedSymptoms.size;
+
+  SYSTEMS.forEach(sys => {
+    const cnt = sys.symptoms.filter(s => selectedSymptoms.has(s)).length;
+    const badge = document.getElementById('nbadge-' + sys.id);
+    if (badge) { badge.textContent = cnt; badge.style.display = cnt > 0 ? 'inline-block' : 'none' }
+  });
+
+  const pill = document.getElementById('sym-count-pill');
+  const txt  = document.getElementById('sym-count-text');
+  if (pill) pill.classList.toggle('hidden', total === 0);
+  if (txt)  txt.textContent = `${total} ta tanlandi`;
+
+  const btn = document.getElementById('btn-diagnose');
+  if (btn) btn.disabled = total === 0;
+}
+
+/* ═══════════════════════════════════════
+   DIAGNOSIS — Gemini API with full debug
+═══════════════════════════════════════ */
+function getApiKey() {
+  return localStorage.getItem('mi_api_key') || '';
+}
+
+async function runDiagnosis() {
+  if (selectedSymptoms.size === 0) { showToast('Kamida bitta belgi tanlang'); return; }
+
+  const apiKey = getApiKey();
+  log(`API key check: ${apiKey ? `found (${apiKey.length} chars, starts with ${apiKey.slice(0,8)}...)` : 'NOT FOUND'}`, apiKey ? 'ok' : 'err');
+
+  if (!apiKey) { showApiModal(); return; }
+
+  goToScreen('screen-3');
+  setLoadingStatus('Simptomlar tayyorlanmoqda...');
+
+  const symptoms  = Array.from(selectedSymptoms).join(', ');
+  const gender    = patientData?.gender === 'erkak' ? 'erkak' : 'ayol';
+  const age       = patientData?.age || 30;
+  log(`Patient: ${age}y ${gender} | Symptoms (${selectedSymptoms.size}): ${symptoms}`, 'info');
+
+  const PROMPT = `Sen tajribali shifokor yordamchisisisan. Faqat yengil kasalliklarni aniqlaysan.
+Javobni FAQAT JSON formatida ber, boshqa hech narsa yozma:
+{
+  "tashxis": "string",
+  "tashxis_izohi": "string",
+  "ogirlik": "yengil|o'rtacha",
+  "davolanish_muddati": "string (masalan: 7 kun)",
+  "kasalxona_kerakmi": false,
+  "kasalxona_sababi": "",
+  "retsept": [{"dori_nomi":"","doza":"","qabul_qilish":"","vaqt":"","kun_soni":""}],
+  "parhez_stol": {"raqam":1,"nomi":"","tavsiya":""},
+  "umumiy_tavsiyalar": ["...","...","..."]
+}
+Agar og'ir kasallik bo'lsa kasalxona_kerakmi=true.
+Bemor: ${age} yoshli ${gender}. Simptomlar: ${symptoms}.`;
+
+  const MODELS = [
+    // 'gemini-2.5-flash',
+    'gemini-3-flash-preview'
+  ];
+  const BASE_URL = 'https://generativelanguage.googleapis.com/v1beta/models';
+
+  for (let mi = 0; mi < MODELS.length; mi++) {
+    const model = MODELS[mi];
+    const url = `${BASE_URL}/${model}:generateContent?key=${apiKey}`;
+    log(`[Model ${mi+1}/${MODELS.length}] Trying: ${model}`, 'info');
+    setLoadingStatus(`${model} modeli sinalmaqda... (${mi+1}/${MODELS.length})`);
+
+    for (let attempt = 0; attempt < 3; attempt++) {
+      if (attempt > 0) {
+        const waitMs = 2000 * attempt;
+        log(`  Retry ${attempt} — waiting ${waitMs}ms`, 'warn');
+        setLoadingStatus(`Qayta urinish ${attempt}/2... (${waitMs/1000}s kutilmoqda)`);
+        await sleep(waitMs);
+      }
+
+      try {
+        const body = JSON.stringify({
+          contents: [{ parts: [{ text: PROMPT }] }],
+          generationConfig: { temperature: 0.3, maxOutputTokens: 2048 }
+        });
+        log(`  → POST ${url.split('?')[0]}?key=***`, 'info');
+        log(`  → Body length: ${body.length} chars`, 'info');
+
+        const resp = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body
+        });
+
+        log(`  ← Status: ${resp.status} ${resp.statusText}`, resp.ok ? 'ok' : 'err');
+
+        // Read raw body for debugging
+        const rawText = await resp.text();
+        log(`  ← Raw response length: ${rawText.length} chars`, 'info');
+
+        if (!resp.ok) {
+          // Parse error details
+          let errMsg = `HTTP ${resp.status}`;
+          try {
+            const errJson = JSON.parse(rawText);
+            errMsg = errJson?.error?.message || errJson?.error?.status || rawText.slice(0,200);
+            log(`  ← API Error details: ${JSON.stringify(errJson?.error)}`, 'err');
+          } catch { log(`  ← Non-JSON error body: ${rawText.slice(0,300)}`, 'err') }
+
+          if (resp.status === 400) {
+            log(`  → 400 Bad Request — likely invalid API key or model name`, 'err');
+            showError(`API kalit noto'g'ri yoki model nomi xato.\n\nXato: ${errMsg}\n\nAistudio.google.com dan yangi kalit oling.`);
+            return;
+          }
+          if (resp.status === 403) {
+            log(`  → 403 Forbidden — API key has no permission or quota exceeded`, 'err');
+            showError(`API kalitda ruxsat yo'q yoki limit tugadi.\n\nXato: ${errMsg}`);
+            return;
+          }
+          if (resp.status === 404) {
+            log(`  → 404 Model not found, trying next model`, 'warn');
+            break; // try next model
+          }
+          if (resp.status === 429 || resp.status === 503) {
+            log(`  → ${resp.status} Rate limit/overload, retrying...`, 'warn');
+            continue; // retry same model
+          }
+          // Other error
+          log(`  → Unhandled HTTP ${resp.status}, trying next model`, 'warn');
+          break;
+        }
+
+        // Parse successful response
+        let data;
+        try { data = JSON.parse(rawText); }
+        catch(e) { log(`  ← JSON parse error: ${e.message}`, 'err'); continue; }
+
+        log(`  ← Response candidates: ${data.candidates?.length || 0}`, 'ok');
+        log(`  ← Finish reason: ${data.candidates?.[0]?.finishReason}`, 'info');
+
+        const rawContent = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+        log(`  ← Content text length: ${rawContent.length}`, rawContent ? 'ok' : 'err');
+        if (!rawContent) {
+          const blockReason = data.candidates?.[0]?.finishReason;
+          log(`  ← Empty content! finishReason=${blockReason}`, 'err');
+          if (blockReason === 'SAFETY') {
+            log('  → Safety filter blocked the response', 'err');
+          }
+          continue;
+        }
+
+        // Clean and parse JSON
+        const clean = rawContent.replace(/```json\s*/g,'').replace(/```\s*/g,'').trim();
+        log(`  ← Cleaned JSON (first 200): ${clean.slice(0,200)}`, 'info');
+
+        let result;
+        try { result = JSON.parse(clean); }
+        catch(e) {
+          // Try to extract JSON from text
+          const match = clean.match(/\{[\s\S]*\}/);
+          if (match) {
+            try { result = JSON.parse(match[0]); log('  ← Extracted JSON from text', 'warn'); }
+            catch(e2) { log(`  ← JSON extract failed: ${e2.message}`, 'err'); continue; }
+          } else {
+            log(`  ← JSON parse failed: ${e.message}`, 'err');
+            log(`  ← Full cleaned response: ${clean}`, 'err');
+            continue;
+          }
+        }
+
+        log(`  ← Parsed result: tashxis="${result.tashxis}", kasalxona=${result.kasalxona_kerakmi}`, 'ok');
+        log(`  ← Model used: ${model} (attempt ${attempt+1})`, 'ok');
+
+        // Save and show
+        if (!result.kasalxona_kerakmi) {
+          treatmentData = {
+            startDate: today(),
+            totalDays: parseInt(result.davolanish_muddati) || 7,
+            tashxis: result.tashxis,
+            tashxis_izohi: result.tashxis_izohi,
+            ogirlik: result.ogirlik,
+            retsept: result.retsept || [],
+            parhez_stol: result.parhez_stol || {},
+            umumiy_tavsiyalar: result.umumiy_tavsiyalar || [],
+            dailyLog: {}
+          };
+          localStorage.setItem('mi_treatment', JSON.stringify(treatmentData));
+          log('Treatment data saved to localStorage', 'ok');
+        }
+
+        renderDiagnosis(result);
+        return;
+
+      } catch(e) {
+        log(`  ← Fetch error: ${e.name}: ${e.message}`, 'err');
+        if (e.name === 'TypeError' && e.message.includes('fetch')) {
+          log('  → Network error — check internet connection or CORS', 'err');
+        }
+        continue;
+      }
+    }
+    // Model loop ends, try next
+  }
+
+  log('All models and retries exhausted', 'err');
+  showError("Barcha modellar ishlamadi. Internetni tekshiring va qayta urinib ko'ring.\n\nDebug uchun 🐛 tugmasini bosing.");
+}
+
+function setLoadingStatus(msg) {
+  const el = document.getElementById('loading-status');
+  if (el) el.textContent = msg;
+}
+
+function showError(msg) {
+  document.getElementById('diag-inner').innerHTML = `
+    <div class="emergency-wrap">
+      <div class="emergency-card">
+        <div class="e-icon">⚠️</div>
+        <h2 style="color:var(--c-amber)">Xatolik yuz berdi</h2>
+        <p style="white-space:pre-line">${msg}</p>
+        <button class="btn-sos" style="background:var(--c-teal)" onclick="runDiagnosis()">🔄 Qayta urinish</button>
+        <button class="btn-sos-back" onclick="goToScreen('screen-2')">← Simptomlar</button>
+      </div>
+    </div>`;
+  goToScreen('screen-4');
+}
+
+/* ═══════════════════════════════════════
+   RENDER DIAGNOSIS
+═══════════════════════════════════════ */
+function renderDiagnosis(data) {
+  const inner = document.getElementById('diag-inner');
+
+  if (data.kasalxona_kerakmi) {
+    inner.innerHTML = `
+      <div class="emergency-wrap">
+        <div class="emergency-card">
+          <div class="e-icon">🚨</div>
+          <h2>Zudlik bilan kasalxonaga boring!</h2>
+          <p>${data.kasalxona_sababi || 'Simptomlaringiz jiddiy tibbiy yordamni talab qiladi.'}</p>
+          <a href="tel:103"><button class="btn-sos">📞 103 — Tez yordam</button></a>
+          <button class="btn-sos-back" onclick="goToScreen('screen-2')">← Simptomlarni o'zgartirish</button>
+        </div>
+      </div>`;
+    goToScreen('screen-4');
+    return;
+  }
+
+  const rxHTML = (data.retsept || []).map(rx => `
+    <div class="rx-item">
+      <div class="rx-icon">💊</div>
+      <div>
+        <div class="rx-name">${rx.dori_nomi}</div>
+        <div class="rx-grid">
+          <div class="rx-field"><div class="rx-fl">Doza</div><div class="rx-fv">${rx.doza}</div></div>
+          <div class="rx-field"><div class="rx-fl">Qabul qilish</div><div class="rx-fv">${rx.qabul_qilish}</div></div>
+          <div class="rx-field"><div class="rx-fl">Vaqt</div><div class="rx-fv">${rx.vaqt}</div></div>
+          <div class="rx-field"><div class="rx-fl">Davomiyligi</div><div class="rx-fv">${rx.kun_soni}</div></div>
+        </div>
+      </div>
+    </div>`).join('');
+
+  const recHTML = (data.umumiy_tavsiyalar || []).map(r =>
+    `<li><div class="rec-dot">✓</div>${r}</li>`).join('');
+
+  inner.innerHTML = `
+    <div class="diag-layout">
+      <div class="diag-sidebar">
+        <div class="diag-label">Taxminiy tashxis</div>
+        <div class="diag-title">${data.tashxis}</div>
+        <div class="diag-desc">${data.tashxis_izohi}</div>
+        <div class="diag-pills">
+          <span class="diag-pill">⏱ ${data.davolanish_muddati}</span>
+          <span class="diag-pill">📊 ${data.ogirlik}</span>
+        </div>
+        <div class="diag-actions" style="margin-top:auto">
+          <button class="btn-goto-treat" onclick="goToTracker()">💊 Davolanishni boshlash →</button>
+          <button class="btn-back" onclick="goToScreen('screen-2')">← Orqaga</button>
+        </div>
+      </div>
+      <div class="diag-body">
+        ${rxHTML ? `<div class="diag-section"><div class="sec-title">💊 Retsept — Dorilar</div>${rxHTML}</div>` : ''}
+        ${data.parhez_stol?.raqam ? `
+        <div class="diag-section">
+          <div class="sec-title">🥗 Parhez</div>
+          <div class="diet-box">
+            <div class="diet-num">${data.parhez_stol.raqam}</div>
+            <div class="diet-info">
+              <h4>Parhez Stol №${data.parhez_stol.raqam} — ${data.parhez_stol.nomi || ''}</h4>
+              <p>${data.parhez_stol.tavsiya || ''}</p>
+            </div>
+          </div>
+        </div>` : ''}
+        ${recHTML ? `
+        <div class="diag-section">
+          <div class="sec-title">📋 Umumiy tavsiyalar</div>
+          <ul class="rec-list">${recHTML}</ul>
+        </div>` : ''}
+        <p style="font-size:11px;color:var(--text4);margin-top:12px;line-height:1.6;padding-bottom:16px">⚠️ Bu ma'lumot tibbiy maslahat emas. Jiddiy belgilar bo'lsa shifokorga murojaat qiling.</p>
+      </div>
+    </div>`;
+  goToScreen('screen-4');
+}
+
+/* ═══════════════════════════════════════
+   TRACKER
+═══════════════════════════════════════ */
+function goToTracker() {
+  renderTracker();
+  goToScreen('screen-5');
+}
+
+function renderTracker() {
+  const el = document.getElementById('screen-5');
+  if (!treatmentData) {
+    el.style.display = 'flex';
+    el.style.flexDirection = 'column';
+    el.style.alignItems = 'center';
+    el.style.justifyContent = 'center';
+    el.style.padding = '40px';
+    el.style.textAlign = 'center';
+    el.style.gap = '16px';
+    el.innerHTML = `
+      <div style="font-size:64px">💊</div>
+      <h2 style="font-family:'Playfair Display',serif;font-size:28px;color:var(--text)">Davolanish rejasi yo'q</h2>
+      <p style="font-size:14px;color:var(--text3);max-width:360px;line-height:1.7">Avval simptomlaringizni kiriting va AI tashxis olsin.</p>
+      <button style="padding:14px 28px;background:var(--c-teal);color:#fff;border-radius:14px;font-size:14px;font-weight:700;cursor:pointer" onclick="goToScreen('screen-2')">🩺 Tashxis olish</button>`;
+    return;
+  }
+
+  const dateStr = today();
+  const dayNum  = Math.max(1, Math.floor((new Date(dateStr) - new Date(treatmentData.startDate)) / 86400000) + 1);
+  const total   = treatmentData.totalDays;
+  const pct     = Math.min(100, Math.round((dayNum / total) * 100));
+  const done    = dayNum > total;
+  const todayLog = treatmentData.dailyLog[dateStr] || { medications:{}, ahvol:null };
+  const meds    = treatmentData.retsept || [];
+  const checkedCount = Object.values(todayLog.medications || {}).filter(v=>v).length;
+
+  // Worse streak
+  let worseCount = 0;
+  const dates = Object.keys(treatmentData.dailyLog).sort().slice(-3);
+  dates.forEach(d => { if (treatmentData.dailyLog[d]?.ahvol === 'yomon') worseCount++ });
+
+  if (done) {
+    el.style.cssText = 'display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px;text-align:center;gap:16px';
+    el.innerHTML = `
+      <div style="font-size:72px">🎉</div>
+      <h2 style="font-family:'Playfair Display',serif;font-size:32px">Davolanish tugadi!</h2>
+      <p style="font-size:14px;color:var(--text3);max-width:360px;line-height:1.7">Tabriklaymiz! ${total} kunlik kursni yakunladingiz. Nazorat uchun shifokorga murojaat qiling.</p>
+      <button style="padding:14px 28px;background:var(--c-teal);color:#fff;border-radius:14px;font-size:14px;font-weight:700;cursor:pointer" onclick="goToScreen('screen-2');selectedSymptoms.clear();updateSymptomCounts()">🔄 Yangi tashxis olish</button>`;
+    return;
+  }
+
+  el.style.cssText = 'display:grid;grid-template-columns:300px 1fr;overflow:hidden';
+  el.innerHTML = `
+    <div class="track-sidebar">
+      <h2>${treatmentData.tashxis}</h2>
+      <p class="sub">${dayNum}-kun / ${total} kundan · ${checkedCount}/${meds.length} dori qabul qilindi</p>
+      <div class="prog-box">
+        <div class="prog-top"><span>Jarayon</span><span>${pct}%</span></div>
+        <div class="prog-track"><div class="prog-fill" style="width:${pct}%"></div></div>
+      </div>
+      <div class="day-grid">
+        <div class="day-stat"><span class="day-stat-n">${dayNum}</span><span class="day-stat-l">Kun</span></div>
+        <div class="day-stat"><span class="day-stat-n">${total - dayNum}</span><span class="day-stat-l">Qoldi</span></div>
+        <div class="day-stat"><span class="day-stat-n">${checkedCount}</span><span class="day-stat-l">Qabul qilindi</span></div>
+        <div class="day-stat"><span class="day-stat-n">${meds.length - checkedCount}</span><span class="day-stat-l">Qolmoqda</span></div>
+      </div>
+      <button class="btn-new-diag" onclick="goToScreen('screen-2');selectedSymptoms.clear();updateSymptomCounts()">🩺 Yangi tashxis</button>
     </div>
-  </div>
-</div>
+    <div class="track-body">
+      <div class="track-card">
+        <div class="track-card-title">💊 Bugungi dorilar — ${fmtDate(dateStr)}</div>
+        <div class="med-list" id="med-list">
+          ${meds.map(rx => {
+            const checked = todayLog.medications[rx.dori_nomi] || false;
+            return `
+              <div class="med-row ${checked?'checked':''}" id="medrow-${encodeURIComponent(rx.dori_nomi)}"
+                   onclick="toggleMed('${dateStr}','${rx.dori_nomi.replace(/'/g,"\\'")}')">
+                <div class="med-cb">${checked?'✓':''}</div>
+                <div class="med-info">
+                  <div class="med-name">${rx.dori_nomi}</div>
+                  <div class="med-meta">${rx.doza} · ${rx.qabul_qilish} · ${rx.vaqt}</div>
+                </div>
+                <span class="med-tag">${rx.kun_soni}</span>
+              </div>`;
+          }).join('')}
+        </div>
+      </div>
+      <div class="track-card">
+        <div class="track-card-title">🌡️ Bugungi ahvolingiz</div>
+        <div class="ahvol-row">
+          <button class="ahvol-btn ${todayLog.ahvol==='yaxshi'?'s-yaxshi':''}" onclick="setAhvol('${dateStr}','yaxshi')"><span>😊</span>Yaxshilashdi</button>
+          <button class="ahvol-btn ${todayLog.ahvol==='xuddi'?'s-xuddi':''}" onclick="setAhvol('${dateStr}','xuddi')"><span>😐</span>Xuddi shunday</button>
+          <button class="ahvol-btn ${todayLog.ahvol==='yomon'?'s-yomon':''}" onclick="setAhvol('${dateStr}','yomon')"><span>😟</span>Yomonlashdi</button>
+        </div>
+        <div class="warn-box" id="worse-warn" style="${worseCount>=2?'display:flex':'display:none'}">
+          ⚠️ Ahvolingiz 2 kun ketma-ket yomonlashdi. Iltimos, shifokorga murojaat qiling!
+        </div>
+      </div>
+      ${treatmentData.parhez_stol?.raqam ? `
+      <div class="track-card">
+        <div class="track-card-title">🥗 Parhez</div>
+        <div class="diet-box">
+          <div class="diet-num">${treatmentData.parhez_stol.raqam}</div>
+          <div class="diet-info">
+            <h4>Parhez Stol №${treatmentData.parhez_stol.raqam} — ${treatmentData.parhez_stol.nomi||''}</h4>
+            <p>${treatmentData.parhez_stol.tavsiya||''}</p>
+          </div>
+        </div>
+      </div>` : ''}
+    </div>`;
+}
 
-<!-- PROFILE -->
-<div id="screen-profil" class="screen">
-  <div id="profil-content">
-    <!-- Rendered by JS -->
-  </div>
-</div>
+function toggleMed(date, medName) {
+  if (!treatmentData.dailyLog[date]) treatmentData.dailyLog[date] = { medications:{}, ahvol:null };
+  const cur = treatmentData.dailyLog[date].medications[medName] || false;
+  treatmentData.dailyLog[date].medications[medName] = !cur;
+  localStorage.setItem('mi_treatment', JSON.stringify(treatmentData));
+  const row = document.getElementById('medrow-' + encodeURIComponent(medName));
+  if (row) {
+    row.classList.toggle('checked', !cur);
+    row.querySelector('.med-cb').textContent = !cur ? '✓' : '';
+  }
+  showToast(!cur ? '✓ Qabul qilindi' : 'Bekor qilindi');
+  log(`Med toggle: ${medName} → ${!cur}`, 'info');
+}
 
+function setAhvol(date, val) {
+  if (!treatmentData.dailyLog[date]) treatmentData.dailyLog[date] = { medications:{}, ahvol:null };
+  treatmentData.dailyLog[date].ahvol = val;
+  localStorage.setItem('mi_treatment', JSON.stringify(treatmentData));
+  document.querySelectorAll('.ahvol-btn').forEach(b => b.className = 'ahvol-btn');
+  const map = { yaxshi:0, xuddi:1, yomon:2 };
+  document.querySelectorAll('.ahvol-btn')[map[val]]?.classList.add(`s-${val}`);
+  // Update worse warning
+  const dates = Object.keys(treatmentData.dailyLog).sort().slice(-3);
+  let wc = 0;
+  dates.forEach(d => { if (treatmentData.dailyLog[d]?.ahvol === 'yomon') wc++ });
+  const warnEl = document.getElementById('worse-warn');
+  if (warnEl) warnEl.style.display = wc >= 2 ? 'flex' : 'none';
+  showToast('Ahvol saqlandi');
+}
 
-<!-- ════════════════════════════════════
-     TAB BAR
-════════════════════════════════════ -->
-<nav id="tab-bar" class="tab-bar" style="display:none">
-  <div class="tab-item active" data-tab="home">
-    <span class="tab-icon">🏠</span>
-    <span>Bosh sahifa</span>
-  </div>
-  <div class="tab-item" data-tab="treat">
-    <span class="tab-icon">💊</span>
-    <span>Davolanish</span>
-  </div>
-  <div class="tab-item" data-tab="apteka">
-    <span class="tab-icon">🏪</span>
-    <span>Apteka</span>
-  </div>
-  <div class="tab-item" data-tab="profil">
-    <span class="tab-icon">👤</span>
-    <span>Profil</span>
-  </div>
-</nav>
+/* ═══════════════════════════════════════
+   API KEY MODAL
+═══════════════════════════════════════ */
+function showApiModal() {
+  log('Showing API key modal', 'warn');
+  document.getElementById('api-modal').classList.add('open');
+}
+function closeApiModal() {
+  document.getElementById('api-modal').classList.remove('open');
+}
+function saveApiKeyModal() {
+  const key = document.getElementById('modal-api-key').value.trim();
+  if (!key) { showToast('API kalitni kiriting'); return; }
+  localStorage.setItem('mi_api_key', key);
+  log(`API key saved: ${key.slice(0,8)}...${key.slice(-4)}`, 'ok');
+  closeApiModal();
+  showToast('✓ Saqlandi. Tashxis boshlanmoqda...');
+  setTimeout(() => runDiagnosis(), 400);
+}
 
-
-<!-- ════════════════════════════════════
-     API KEY MODAL
-════════════════════════════════════ -->
-<div id="api-key-modal" style="
-  display:none;
-  position:fixed;inset:0;
-  background:rgba(0,0,0,.5);
-  z-index:1000;
-  align-items:flex-end;
-  justify-content:center;
-">
-  <div style="
-    background:white;
-    border-radius:24px 24px 0 0;
-    padding:28px 20px 32px;
-    width:100%;
-    max-width:430px;
-    animation:fadeIn .25s ease;
-  ">
-    <h3 style="font-size:20px;font-weight:900;margin-bottom:8px">🔑 Gemini API kalit kerak</h3>
-    <p style="font-size:14px;color:var(--text-3);margin-bottom:20px;line-height:1.5">
-      AI tashxis uchun Google Gemini API kaliti kerak.<br>
-      Bepul olish: <strong>aistudio.google.com</strong> → "Get API Key"
-    </p>
-    <div style="margin-bottom:16px">
-      <label style="font-size:13px;font-weight:700;color:var(--text-2);display:block;margin-bottom:8px">
-        API kalitingizni kiriting:
-      </label>
-      <input
-        id="modal-api-key"
-        type="text"
-        placeholder="AIzaSy..."
-        style="
-          width:100%;padding:13px 15px;
-          border:1.5px solid var(--border);
-          border-radius:10px;
-          font-size:15px;
-          font-family:'Nunito',sans-serif;
-          min-height:48px;
-        "
-      >
-    </div>
-    <button class="btn btn-primary" onclick="saveApiKeyModal()" style="margin-bottom:10px">
-      ✓ Saqlash va davom etish
-    </button>
-    <button class="btn btn-secondary" onclick="closeApiKeyModal()">
-      Bekor qilish
-    </button>
-    <p style="font-size:11px;color:var(--text-4);text-align:center;margin-top:12px;line-height:1.5">
-      API kalit faqat qurilmangizda saqlanadi. Hech qayerga yuborilmaydi.
-    </p>
-  </div>
-</div>
-
-
-<!-- ════════════════════════════════════
-     TOAST
-════════════════════════════════════ -->
-<div id="toast" class="toast"></div>
-
-
-<!-- ════════════════════════════════════
-     SCRIPTS
-════════════════════════════════════ -->
-<script src="config.js"></script>
-<script src="app.js"></script>
-
+/* ═══════════════════════════════════════
+   HELPERS
+═══════════════════════════════════════ */
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2400);
+}
+function today() { return new Date().toISOString().slice(0,10) }
+function fmtDate(iso) {
+  if (!iso) return '';
+  return new Date(iso).toLocaleDateString('uz-UZ', { day:'numeric', month:'long' });
+}
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)) }
+</script>
 </body>
 </html>
