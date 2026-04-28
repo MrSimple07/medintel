@@ -1055,9 +1055,9 @@ input,select,textarea { font-family:inherit }
 <div id="root">
   <!-- TOP BAR -->
   <header id="topbar">
-    <div class="tb-logo">
-      <div class="tb-logo-mark">🏥</div>
-      <h1>MedIntel</h1>
+    <div class="tb-logo" onclick="goToScreen('screen-1')" style="cursor:pointer" title="Bosh sahifaga qaytish">
+        <div class="tb-logo-mark">🏥</div>
+        <h1>MedIntel</h1>
     </div>
     <div class="tb-sep"></div>
     <span id="tb-breadcrumb">Xush kelibsiz</span>
@@ -1079,8 +1079,7 @@ input,select,textarea { font-family:inherit }
           <p>Simptomlaringizni kiriting va sun'iy intellekt yordamida tashxis hamda davolanish rejasini oling.</p>
           <div class="s1-trust">
             <span class="trust-chip">🔒 Xavfsiz</span>
-            <span class="trust-chip">📱 Offline ishlaydi</span>
-            <span class="trust-chip">🤖 Gemini AI</span>
+            <span class="trust-chip">📱 Offline tarzda ishlaydi</span>
             <span class="trust-chip">⚡ Tez tashxis</span>
           </div>
         </div>
@@ -1166,7 +1165,7 @@ input,select,textarea { font-family:inherit }
 <div id="toast"></div>
 
 <!-- DEBUG -->
-<button id="debug-toggle" onclick="toggleDebug()">🐛 Debug</button>
+<!-- <button id="debug-toggle" onclick="toggleDebug()">🐛 Debug</button> -->
 <div id="debug-panel">
   <div class="debug-title">
     <span>🐛 API Debug Log</span>
@@ -1196,6 +1195,19 @@ const SYSTEMS = [
   { id:'immun',    icon:'🛡️', name:'Immun tizim',               bg:'#F0FDF4', symptoms:["Terida toshma","Qichishish","Limfa bezlari kattalashishi","Holsizlik","Allergik reaktsiya"] },
   { id:'nerv',     icon:'🧠', name:'Nerv tizimi',               bg:'#FAF5FF', symptoms:["Uyqu buzilishi","Kayfiyat buzilishi","Bosh og'rig'i","Bosh aylanishi","Ko'ruv pasayishi","Eslab tuta olmaslik"] }
 ];
+
+const PHARMACIES = [
+  { name: 'Apteka Nur', distance: '1.2 km', price: '11 500 so‘m' },
+  { name: 'Apteka Salomat', distance: '1.8 km', price: '12 100 so‘m' },
+  { name: 'Apteka Tinchlik', distance: '2.4 km', price: '12 800 so‘m' }
+];
+
+function choosePharmacy(drugName) {
+  const idx = drugName
+    .split('')
+    .reduce((sum, ch) => sum + ch.charCodeAt(0), 0) % PHARMACIES.length;
+  return PHARMACIES[idx];
+}
 
 /* ═══════════════════════════════════════
    DEBUG
@@ -1450,8 +1462,7 @@ async function runDiagnosis() {
   const gender    = patientData?.gender === 'erkak' ? 'erkak' : 'ayol';
   const age       = patientData?.age || 30;
   log(`Patient: ${age}y ${gender} | Symptoms (${selectedSymptoms.size}): ${symptoms}`, 'info');
-
-  const PROMPT = `Sen tajribali shifokor yordamchisisisan. Faqat yengil kasalliklarni aniqlaysan.
+const PROMPT = `Sen tajribali shifokor yordamchisisan. Faqat yengil kasalliklarni aniqlaysan.
 Javobni FAQAT JSON formatida ber, boshqa hech narsa yozma:
 {
   "tashxis": "string",
@@ -1460,10 +1471,21 @@ Javobni FAQAT JSON formatida ber, boshqa hech narsa yozma:
   "davolanish_muddati": "string (masalan: 7 kun)",
   "kasalxona_kerakmi": false,
   "kasalxona_sababi": "",
+  "asosiy_belgilar": ["..."],
+  "jarayon": ["..."],
+  "differential": ["..."],
   "retsept": [{"dori_nomi":"","doza":"","qabul_qilish":"","vaqt":"","kun_soni":""}],
   "parhez_stol": {"raqam":1,"nomi":"","tavsiya":""},
   "umumiy_tavsiyalar": ["...","...","..."]
 }
+
+Talablar:
+- tashxisga eng asosiy kasallikni yozing.
+- tashxis_izohi bo'limida kasallik sabablari, asosiy belgilar, klinik izoh va davolanish yondashuvini batafsil tushuntiring.
+- Agar kasallik og'ir bo'lsa, kasalxona_kerakmi ni true qiling va kasalxona_sababi ga sababini yozing.
+- asosiy_belgilar va jarayon maydonlari bilan qo'shimcha diagnostika ma'lumotini bering.
+- Agar aniq bo'lmasa, differentialda ehtimoliy boshqa kasalliklar ro'yxatini keltiring.
+
 Agar og'ir kasallik bo'lsa kasalxona_kerakmi=true.
 Bemor: ${age} yoshli ${gender}. Simptomlar: ${symptoms}.`;
 
@@ -1655,6 +1677,22 @@ function renderDiagnosis(data) {
     return;
   }
 
+  const summaryHTML = `
+    <div class="diag-section">
+      <div class="sec-title">📌 Umumiy ma'lumot</div>
+      <p>${data.tashxis_izohi || "Tashxis haqida batafsil ma'lumot mavjud emas."}</p>
+      ${data.asosiy_belgilar?.length ? `<p><strong>Asosiy belgilar:</strong> ${data.asosiy_belgilar.join(', ')}</p>` : ''}
+      ${data.differential?.length ? `<p><strong>Ehtimoliy kasalliklar:</strong> ${data.differential.join(', ')}</p>` : ''}
+    </div>`;
+
+  const processHTML = data.jarayon?.length ? `
+    <div class="diag-section">
+      <div class="sec-title">🧭 Jarayon</div>
+      <ul class="rec-list">
+        ${data.jarayon.map(step => `<li><div class="rec-dot">✓</div>${step}</li>`).join('')}
+      </ul>
+    </div>` : '';
+
   const rxHTML = (data.retsept || []).map(rx => `
     <div class="rx-item">
       <div class="rx-icon">💊</div>
@@ -1688,6 +1726,8 @@ function renderDiagnosis(data) {
         </div>
       </div>
       <div class="diag-body">
+        ${summaryHTML}
+        ${processHTML}
         ${rxHTML ? `<div class="diag-section"><div class="sec-title">💊 Retsept — Dorilar</div>${rxHTML}</div>` : ''}
         ${data.parhez_stol?.raqam ? `
         <div class="diag-section">
@@ -1705,9 +1745,12 @@ function renderDiagnosis(data) {
           <div class="sec-title">📋 Umumiy tavsiyalar</div>
           <ul class="rec-list">${recHTML}</ul>
         </div>` : ''}
-        <p style="font-size:11px;color:var(--text4);margin-top:12px;line-height:1.6;padding-bottom:16px">⚠️ Bu ma'lumot tibbiy maslahat emas. Jiddiy belgilar bo'lsa shifokorga murojaat qiling.</p>
+        <p style="font-size:11px;color:var(--text4);margin-top:12px;line-height:1.6;padding-bottom:16px">
+          ⚠️ Bu ma'lumot tibbiy maslahat emas. Jiddiy belgilar bo'lsa shifokorga murojaat qiling.
+        </p>
       </div>
     </div>`;
+      
   goToScreen('screen-4');
 }
 

@@ -873,6 +873,14 @@ img { max-width: 100%; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
 
+.rx-pharmacy {
+  margin-top:12px;
+  font-size:12px;
+  color:var(--text3);
+  line-height:1.5;
+}
+
+
 /* ══════════════════════════════════════
    HOME SCREEN
 ══════════════════════════════════════ */
