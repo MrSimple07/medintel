@@ -942,3 +942,78 @@ img { max-width: 100%; }
 .text-teal { color: var(--teal); }
 .fw-700 { font-weight: 700; }
 .fw-800 { font-weight: 800; }
+
+
+
+/* ─── PHARMACIES ──────────────────────── */
+.apteka-grid {
+  display:grid;
+  grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));
+  gap:14px;
+  margin-bottom:16px;
+}
+.apteka-card {
+  background:var(--surface);
+  border:1.5px solid var(--border);
+  border-radius:var(--r);
+  padding:14px;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  transition:all .2s;
+}
+.apteka-card:hover {
+  border-color:var(--c-teal);
+  box-shadow:0 4px 12px rgba(13,148,136,.2);
+}
+.apteka-header {
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:8px;
+}
+.apteka-name {
+  font-size:14px;
+  font-weight:700;
+  color:var(--text);
+  flex:1;
+}
+.apteka-rating {
+  font-size:12px;
+  font-weight:600;
+  color:#FFB800;
+}
+.apteka-info {
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+.apteka-item {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  font-size:12px;
+}
+.apteka-label {
+  color:var(--text3);
+  font-weight:600;
+}
+.apteka-value {
+  color:var(--text);
+  font-weight:700;
+}
+.apteka-btn {
+  padding:9px 12px;
+  background:var(--c-teal);
+  color:#fff;
+  border-radius:var(--r);
+  font-size:12px;
+  font-weight:700;
+  cursor:pointer;
+  border:none;
+  transition:background .2s;
+  margin-top:auto;
+}
+.apteka-btn:hover {
+  background:var(--c-teal2);
+}

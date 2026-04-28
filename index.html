@@ -1197,10 +1197,26 @@ const SYSTEMS = [
 ];
 
 const PHARMACIES = [
-  { name: 'Apteka Nur', distance: '1.2 km', price: '11 500 so‘m' },
-  { name: 'Apteka Salomat', distance: '1.8 km', price: '12 100 so‘m' },
-  { name: 'Apteka Tinchlik', distance: '2.4 km', price: '12 800 so‘m' }
+  { name: 'Apteka Nur', distance: 1.2, distanceText: '1.2 km', price: 11500, priceText: '11 500 so\'m', rating: '4.8' },
+  { name: 'Apteka Salomat', distance: 1.8, distanceText: '1.8 km', price: 12100, priceText: '12 100 so\'m', rating: '4.6' },
+  { name: 'Apteka Tinchlik', distance: 2.4, distanceText: '2.4 km', price: 12800, priceText: '12 800 so\'m', rating: '4.5' },
+  { name: 'Apteka Health+', distance: 0.8, distanceText: '0.8 km', price: 13200, priceText: '13 200 so\'m', rating: '4.9' },
+  { name: 'Apteka Hayot', distance: 2.1, distanceText: '2.1 km', price: 11800, priceText: '11 800 so\'m', rating: '4.7' },
+  { name: 'Apteka Omonathon', distance: 3.2, distanceText: '3.2 km', price: 12500, priceText: '12 500 so\'m', rating: '4.4' },
+  { name: 'Apteka Premium', distance: 1.5, distanceText: '1.5 km', price: 13500, priceText: '13 500 so\'m', rating: '4.8' },
+  { name: 'Apteka Dostlik', distance: 2.9, distanceText: '2.9 km', price: 11900, priceText: '11 900 so\'m', rating: '4.6' }
 ];
+
+function getTopPharmacies(limit = 5) {
+  return PHARMACIES
+    .sort((a, b) => {
+      const scoreA = a.distance + (a.price / 10000);
+      const scoreB = b.distance + (b.price / 10000);
+      return scoreA - scoreB;
+    })
+    .slice(0, limit);
+}
+
 
 function choosePharmacy(drugName) {
   const idx = drugName
@@ -1710,6 +1726,34 @@ function renderDiagnosis(data) {
   const recHTML = (data.umumiy_tavsiyalar || []).map(r =>
     `<li><div class="rec-dot">✓</div>${r}</li>`).join('');
 
+  const aptekaHTML = `
+    <div class="diag-section">
+      <div class="sec-title">🏥 Eng yaqin va arzon aptekalar</div>
+      <div class="apteka-grid">
+        ${getTopPharmacies(5).map(a => `
+          <div class="apteka-card">
+            <div class="apteka-header">
+              <div class="apteka-name">${a.name}</div>
+              <div class="apteka-rating">⭐ ${a.rating}</div>
+            </div>
+            <div class="apteka-info">
+              <div class="apteka-item">
+                <span class="apteka-label">📍 Masofa</span>
+                <span class="apteka-value">${a.distanceText}</span>
+              </div>
+              <div class="apteka-item">
+                <span class="apteka-label">💰 Narx</span>
+                <span class="apteka-value">${a.priceText}</span>
+              </div>
+            </div>
+            <button class="apteka-btn" onclick="showToast('${a.name} ga yo\\'naltiriladi...')">
+              Yo'naltirish 🗺️
+            </button>
+          </div>
+        `).join('')}
+      </div>
+    </div>`;
+
   inner.innerHTML = `
     <div class="diag-layout">
       <div class="diag-sidebar">
@@ -1745,15 +1789,15 @@ function renderDiagnosis(data) {
           <div class="sec-title">📋 Umumiy tavsiyalar</div>
           <ul class="rec-list">${recHTML}</ul>
         </div>` : ''}
+        ${aptekaHTML}
         <p style="font-size:11px;color:var(--text4);margin-top:12px;line-height:1.6;padding-bottom:16px">
           ⚠️ Bu ma'lumot tibbiy maslahat emas. Jiddiy belgilar bo'lsa shifokorga murojaat qiling.
         </p>
       </div>
     </div>`;
-      
+  
   goToScreen('screen-4');
 }
-
 /* ═══════════════════════════════════════
    TRACKER
 ═══════════════════════════════════════ */
