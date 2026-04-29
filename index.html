@@ -1430,21 +1430,30 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 const CONFIG = {
-  GEMINI_API_KEY: 'AIzaSyAToBMsWOTDzM-q3lVSeA4oldgO7_1vykw' 
+  GEMINI_API_KEYS: [
+    'AIzaSyC1Tfr6S13TqdTfwtTslzIF8VO0GzxwHJE',   // key 1
+    'AIzaSyC8qLWoMw1WeAtnC0iwXFiiTZfk0FjVX8Q', // key 2
+    'AIzaSyCyl8sVMoDnYOHlVhkrojTjYj4Q2N5yquE', // key 3
+    'AIzaSyBJJC7r8gO5i_L3yxBw6gOqdBfVSYRqVz8'
+  ]
 };
 
 function loadStorage() {
   try {
-    // Auto-inject API key from config (won't overwrite if user manually changed it)
-    if (CONFIG.GEMINI_API_KEY && !localStorage.getItem('mi_api_key')) {
-      localStorage.setItem('mi_api_key', CONFIG.GEMINI_API_KEY);
-    }
     const p = localStorage.getItem('mi_patient');
-    if (p) { patientData = JSON.parse(p); log('Patient data loaded from storage', 'ok'); }
+    if (p) { patientData = JSON.parse(p); }
     const t = localStorage.getItem('mi_treatment');
-    if (t) { treatmentData = JSON.parse(t); log('Treatment data loaded from storage', 'ok'); }
+    if (t) { treatmentData = JSON.parse(t); }
     isDark = localStorage.getItem('mi_theme') === 'dark';
   } catch(e) { log('Storage load error: ' + e.message, 'err') }
+}
+
+function getApiKeys() {
+  // Merge config keys + any manually saved key from modal
+  const manual = localStorage.getItem('mi_api_key');
+  const keys = [...CONFIG.GEMINI_API_KEYS];
+  if (manual && !keys.includes(manual)) keys.unshift(manual); // manual key goes first
+  return keys.filter(k => k && k.length > 10);
 }
 
 /* ═══════════════════════════════════════
@@ -1631,19 +1640,15 @@ function getApiKey() {
 async function runDiagnosis() {
   if (selectedSymptoms.size === 0) { showToast('Kamida bitta belgi tanlang'); return; }
 
-  const apiKey = getApiKey();
-  log(`API key check: ${apiKey ? `found (${apiKey.length} chars, starts with ${apiKey.slice(0,8)}...)` : 'NOT FOUND'}`, apiKey ? 'ok' : 'err');
-
-  if (!apiKey) { showApiModal(); return; }
-
   goToScreen('screen-3');
   setLoadingStatus('Simptomlar tayyorlanmoqda...');
 
-  const symptoms  = Array.from(selectedSymptoms).join(', ');
-  const gender    = patientData?.gender === 'erkak' ? 'erkak' : 'ayol';
-  const age       = patientData?.age || 30;
+  const symptoms = Array.from(selectedSymptoms).join(', ');
+  const gender   = patientData?.gender === 'erkak' ? 'erkak' : 'ayol';
+  const age      = patientData?.age || 30;
   log(`Patient: ${age}y ${gender} | Symptoms (${selectedSymptoms.size}): ${symptoms}`, 'info');
-const PROMPT = `Sen tajribali shifokor yordamchisisan. Faqat yengil kasalliklarni aniqlaysan.
+
+  const PROMPT = `Sen tajribali shifokor yordamchisisan. Faqat yengil kasalliklarni aniqlaysan.
 Javobni FAQAT JSON formatida ber, boshqa hech narsa yozma:
 {
   "tashxis": "string",
@@ -1659,163 +1664,159 @@ Javobni FAQAT JSON formatida ber, boshqa hech narsa yozma:
   "parhez_stol": {"raqam":1,"nomi":"","tavsiya":""},
   "umumiy_tavsiyalar": ["...","...","..."]
 }
-
-Talablar:
-- tashxisga eng asosiy kasallikni yozing.
-- tashxis_izohi bo'limida kasallik sabablari, asosiy belgilar, klinik izoh va davolanish yondashuvini batafsil tushuntiring.
-- Agar kasallik og'ir bo'lsa, kasalxona_kerakmi ni true qiling va kasalxona_sababi ga sababini yozing.
-- asosiy_belgilar va jarayon maydonlari bilan qo'shimcha diagnostika ma'lumotini bering.
-- Agar aniq bo'lmasa, differentialda ehtimoliy boshqa kasalliklar ro'yxatini keltiring.
-
-Agar og'ir kasallik bo'lsa kasalxona_kerakmi=true.
+Agar kasallik og'ir bo'lsa kasalxona_kerakmi=true.
 Bemor: ${age} yoshli ${gender}. Simptomlar: ${symptoms}.`;
 
-  const MODELS = [
-    // 'gemini-2.5-flash',
-    'gemini-3-flash-preview'
-  ];
+  const MODELS   = ['gemini-2.5-flash', 'gemini-3-flash-preview', 'gemini-2.5-flash-lite'];
   const BASE_URL = 'https://generativelanguage.googleapis.com/v1beta/models';
+  const API_KEYS = getApiKeys();
 
-  for (let mi = 0; mi < MODELS.length; mi++) {
-    const model = MODELS[mi];
-    const url = `${BASE_URL}/${model}:generateContent?key=${apiKey}`;
-    log(`[Model ${mi+1}/${MODELS.length}] Trying: ${model}`, 'info');
-    setLoadingStatus(`${model} modeli sinalmaqda... (${mi+1}/${MODELS.length})`);
+  log(`Trying ${API_KEYS.length} API key(s) × ${MODELS.length} model(s)`, 'info');
 
-    for (let attempt = 0; attempt < 3; attempt++) {
-      if (attempt > 0) {
-        const waitMs = 2000 * attempt;
-        log(`  Retry ${attempt} — waiting ${waitMs}ms`, 'warn');
-        setLoadingStatus(`Qayta urinish ${attempt}/2... (${waitMs/1000}s kutilmoqda)`);
-        await sleep(waitMs);
-      }
+for (let ki = 0; ki < API_KEYS.length; ki++) {
+    const apiKey = API_KEYS[ki];
+    log(`[Key ${ki+1}/${API_KEYS.length}] ${apiKey.slice(0,8)}...`, 'info');
+    let skipKey = false;
 
-      try {
-        const body = JSON.stringify({
-          contents: [{ parts: [{ text: PROMPT }] }],
-          generationConfig: { temperature: 0.3, maxOutputTokens: 2048 }
-        });
-        log(`  → POST ${url.split('?')[0]}?key=***`, 'info');
-        log(`  → Body length: ${body.length} chars`, 'info');
+    for (let mi = 0; mi < MODELS.length; mi++) {
+      if (skipKey) break;
+      const model = MODELS[mi];
+      const url   = `${BASE_URL}/${model}:generateContent?key=${apiKey}`;
+      log(`  [Model ${mi+1}/${MODELS.length}] ${model}`, 'info');
+      setLoadingStatus(`Sizning tashxisingiz analiz qilinmoqda... Iltimos kuting`);
+      let success = false;
 
-        const resp = await fetch(url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body
-        });
-
-        log(`  ← Status: ${resp.status} ${resp.statusText}`, resp.ok ? 'ok' : 'err');
-
-        // Read raw body for debugging
-        const rawText = await resp.text();
-        log(`  ← Raw response length: ${rawText.length} chars`, 'info');
-
-        if (!resp.ok) {
-          // Parse error details
-          let errMsg = `HTTP ${resp.status}`;
-          try {
-            const errJson = JSON.parse(rawText);
-            errMsg = errJson?.error?.message || errJson?.error?.status || rawText.slice(0,200);
-            log(`  ← API Error details: ${JSON.stringify(errJson?.error)}`, 'err');
-          } catch { log(`  ← Non-JSON error body: ${rawText.slice(0,300)}`, 'err') }
-
-          if (resp.status === 400) {
-            log(`  → 400 Bad Request — likely invalid API key or model name`, 'err');
-            showError(`API kalit noto'g'ri yoki model nomi xato.\n\nXato: ${errMsg}\n\nAistudio.google.com dan yangi kalit oling.`);
-            return;
-          }
-          if (resp.status === 403) {
-            log(`  → 403 Forbidden — API key has no permission or quota exceeded`, 'err');
-            showError(`API kalitda ruxsat yo'q yoki limit tugadi.\n\nXato: ${errMsg}`);
-            return;
-          }
-          if (resp.status === 404) {
-            log(`  → 404 Model not found, trying next model`, 'warn');
-            break; // try next model
-          }
-          if (resp.status === 429 || resp.status === 503) {
-            log(`  → ${resp.status} Rate limit/overload, retrying...`, 'warn');
-            continue; // retry same model
-          }
-          // Other error
-          log(`  → Unhandled HTTP ${resp.status}, trying next model`, 'warn');
-          break;
+      for (let attempt = 0; attempt < 2; attempt++) {
+        if (skipKey) break;
+        if (attempt > 0) {
+          await sleep(1500);
+          setLoadingStatus(`Qayta urinish... Iltimos kuting.`);
         }
+        try {
+          const resp = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: PROMPT }] }],
+              generationConfig: { temperature: 0.3, maxOutputTokens: 2048 }
+            })
+          });
 
-        // Parse successful response
-        let data;
-        try { data = JSON.parse(rawText); }
-        catch(e) { log(`  ← JSON parse error: ${e.message}`, 'err'); continue; }
+          log(`  ← Status: ${resp.status}`, resp.ok ? 'ok' : 'err');
+          const rawText = await resp.text();
 
-        log(`  ← Response candidates: ${data.candidates?.length || 0}`, 'ok');
-        log(`  ← Finish reason: ${data.candidates?.[0]?.finishReason}`, 'info');
+          if (!resp.ok) {
+            let errMsg = `HTTP ${resp.status}`;
+            try { errMsg = JSON.parse(rawText)?.error?.message || errMsg; } catch {}
+            log(`  ← Error: ${errMsg}`, 'err');
 
-        const rawContent = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-        log(`  ← Content text length: ${rawContent.length}`, rawContent ? 'ok' : 'err');
-        if (!rawContent) {
-          const blockReason = data.candidates?.[0]?.finishReason;
-          log(`  ← Empty content! finishReason=${blockReason}`, 'err');
-          if (blockReason === 'SAFETY') {
-            log('  → Safety filter blocked the response', 'err');
+            if (resp.status === 403 || resp.status === 400) {
+              log(`  → Key ${ki+1} rejected (${resp.status}), skipping entire key`, 'warn');
+              skipKey = true;
+              break;
+            }
+            if (resp.status === 429) {
+              log(`  → 429 quota exceeded on key ${ki+1}, skipping entire key`, 'warn');
+              skipKey = true;
+              break;
+            }
+            if (resp.status === 404) {
+              log('  → Model not found, trying next model', 'warn');
+              break; // next model only
+            }
+            if (resp.status === 503) {
+              continue; // retry same model
+            }
+            break;
           }
-          continue;
-        }
 
-        // Clean and parse JSON
-        const clean = rawContent.replace(/```json\s*/g,'').replace(/```\s*/g,'').trim();
-        log(`  ← Cleaned JSON (first 200): ${clean.slice(0,200)}`, 'info');
+          const data       = JSON.parse(rawText);
+          const rawContent = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+          if (!rawContent) { log('  ← Empty content', 'err'); continue; }
 
-        let result;
-        try { result = JSON.parse(clean); }
-        catch(e) {
-          // Try to extract JSON from text
-          const match = clean.match(/\{[\s\S]*\}/);
-          if (match) {
-            try { result = JSON.parse(match[0]); log('  ← Extracted JSON from text', 'warn'); }
-            catch(e2) { log(`  ← JSON extract failed: ${e2.message}`, 'err'); continue; }
-          } else {
-            log(`  ← JSON parse failed: ${e.message}`, 'err');
-            log(`  ← Full cleaned response: ${clean}`, 'err');
-            continue;
+          const clean = rawContent.replace(/```json\s*/g,'').replace(/```\s*/g,'').trim();
+          let result;
+          try { result = JSON.parse(clean); }
+          catch {
+            const match = clean.match(/\{[\s\S]*\}/);
+            if (match) { try { result = JSON.parse(match[0]); } catch { continue; } }
+            else { continue; }
           }
+
+          log(`  ✓ Key ${ki+1}, model ${model}`, 'ok');
+
+          if (!result.kasalxona_kerakmi) {
+            treatmentData = {
+              startDate: today(),
+              totalDays: parseInt(result.davolanish_muddati) || 7,
+              tashxis: result.tashxis,
+              tashxis_izohi: result.tashxis_izohi,
+              ogirlik: result.ogirlik,
+              retsept: result.retsept || [],
+              parhez_stol: result.parhez_stol || {},
+              umumiy_tavsiyalar: result.umumiy_tavsiyalar || [],
+              dailyLog: {}
+            };
+            localStorage.setItem('mi_treatment', JSON.stringify(treatmentData));
+          }
+
+          renderDiagnosis(result);
+          return; // ✓ done
+
+        } catch(e) {
+          log(`  ← Fetch error: ${e.message}`, 'err');
         }
+      } // attempts
+    } // models
+  } // keys
 
-        log(`  ← Parsed result: tashxis="${result.tashxis}", kasalxona=${result.kasalxona_kerakmi}`, 'ok');
-        log(`  ← Model used: ${model} (attempt ${attempt+1})`, 'ok');
+  log('All keys exhausted — showing demo result', 'warn');
+  showDemoResult(Array.from(selectedSymptoms).join(', '), patientData?.age || 30, patientData?.gender || 'erkak');
+}
 
-        // Save and show
-        if (!result.kasalxona_kerakmi) {
-          treatmentData = {
-            startDate: today(),
-            totalDays: parseInt(result.davolanish_muddati) || 7,
-            tashxis: result.tashxis,
-            tashxis_izohi: result.tashxis_izohi,
-            ogirlik: result.ogirlik,
-            retsept: result.retsept || [],
-            parhez_stol: result.parhez_stol || {},
-            umumiy_tavsiyalar: result.umumiy_tavsiyalar || [],
-            dailyLog: {}
-          };
-          localStorage.setItem('mi_treatment', JSON.stringify(treatmentData));
-          log('Treatment data saved to localStorage', 'ok');
-        }
+function showDemoResult(symptoms, age, gender) {
+  const symptomList = symptoms.split(', ');
+  const isSerious = symptomList.some(s =>
+    ['Ko\'krakda og\'riq','Nafas yetishmovchilik','Xansirash','Siyanoz',
+     'Qon bosimi oshishi','Yurak tez urishi','Og\'riqli siydish'].includes(s)
+  );
 
-        renderDiagnosis(result);
-        return;
-
-      } catch(e) {
-        log(`  ← Fetch error: ${e.name}: ${e.message}`, 'err');
-        if (e.name === 'TypeError' && e.message.includes('fetch')) {
-          log('  → Network error — check internet connection or CORS', 'err');
-        }
-        continue;
-      }
-    }
-    // Model loop ends, try next
+  if (isSerious) {
+    renderDiagnosis({
+      kasalxona_kerakmi: true,
+      kasalxona_sababi: `Sizda quyidagi jiddiy belgilar aniqlandi: ${symptomList.join(', ')}. Bu belgilar yurak, o'pka yoki boshqa muhim organlar bilan bog'liq bo'lishi mumkin. Darhol tibbiy ko'rik zarur.`
+    });
+    return;
   }
 
-  log('All models and retries exhausted', 'err');
-  showError("Barcha modellar ishlamadi. Internetni tekshiring va qayta urinib ko'ring.\n\nDebug uchun 🐛 tugmasini bosing.");
+  // Safe demo fallback
+  const demo = {
+    kasalxona_kerakmi: false,
+    tashxis: "O'tkir respirator kasallik (DEMO)",
+    tashxis_izohi: `⚠️ Bu natija DEMO rejimida ko'rsatilmoqda — API kalitlar vaqtincha ishlamadi. Haqiqiy tashxis uchun shifokorga murojaat qiling.\n\nAniqlangan belgilar: ${symptoms}. Bemorning yoshi: ${age}, jinsi: ${gender}.`,
+    ogirlik: "o'rtacha",
+    davolanish_muddati: "5-7 kun",
+    asosiy_belgilar: symptomList,
+    differential: ["Gripp", "O'tkir bronxit", "Faringit"],
+    jarayon: [
+      "Ko'p suv va issiq suyuqlik iching",
+      "Dam oling, og'ir jismoniy faoliyatdan saqlaning",
+      "Xonani yaxshi shamollatib turing"
+    ],
+    retsept: [
+      { dori_nomi: "Paracetamol 500mg", doza: "1 ta", qabul_qilish: "Kuniga 3 marta", vaqt: "Ovqatdan keyin", kun_soni: "5 kun" },
+      { dori_nomi: "Ambroxol", doza: "30mg", qabul_qilish: "Kuniga 3 marta", vaqt: "Ovqat paytida", kun_soni: "7 kun" }
+    ],
+    parhez_stol: { raqam: 13, nomi: "Umumiy", tavsiya: "Issiq sho'rva, choy, meva. Sovuq, yog'li va achchiq ovqatlardan saqlaning." },
+    umumiy_tavsiyalar: [
+      "Kuniga kamida 8 stakan iliq suv iching",
+      "Uyda dam oling, ko'chaga chiqmang",
+      "Belgilar 3 kundan keyin yomonlashsa shifokorga boring",
+      "Atrofdagilar bilan yaqin aloqani cheklang"
+    ]
+  };
+
+  renderDiagnosis(demo);
 }
 
 function setLoadingStatus(msg) {
