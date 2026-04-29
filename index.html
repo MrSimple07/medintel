@@ -1429,8 +1429,16 @@ document.addEventListener('DOMContentLoaded', () => {
   updateStepIndicator();
 });
 
+const CONFIG = {
+  GEMINI_API_KEY: 'AIzaSyDl5bXom9tIJP_QInJY-dnwLvRTnYiz9BE' 
+};
+
 function loadStorage() {
   try {
+    // Auto-inject API key from config (won't overwrite if user manually changed it)
+    if (CONFIG.GEMINI_API_KEY && !localStorage.getItem('mi_api_key')) {
+      localStorage.setItem('mi_api_key', CONFIG.GEMINI_API_KEY);
+    }
     const p = localStorage.getItem('mi_patient');
     if (p) { patientData = JSON.parse(p); log('Patient data loaded from storage', 'ok'); }
     const t = localStorage.getItem('mi_treatment');
