@@ -166,9 +166,10 @@ input,select,textarea { font-family:inherit }
 
 /* ─── SCREEN 1: PATIENT INFO ─────────────── */
 #screen-1 {
-  background:var(--bg);
-  align-items:center;
-  justify-content:center;
+  background: var(--bg);
+  align-items: center;
+  justify-content: flex-start; /* was: center */
+  overflow-y: auto;
 }
 .s1-wrap {
   display:grid;
@@ -1048,6 +1049,113 @@ input,select,textarea { font-family:inherit }
 }
 .m-btn-cancel:hover { opacity:.8 }
 .modal-note { font-size:11px; color:var(--text4); text-align:center; margin-top:12px; line-height:1.5 }
+
+/* ─── MOBILE RESPONSIVE ─────────────────── */
+@media (max-width: 768px) {
+
+  /* Screen 1: stack columns vertically */
+  .s1-wrap {
+    grid-template-columns: 1fr;
+    gap: 24px;
+    padding: 20px 16px;
+    overflow-y: auto;
+    max-height: 100%;
+  }
+  .s1-left h2 { font-size: 32px }
+  .s1-left p { margin-bottom: 16px }
+  .s1-trust { display: none }
+  .s1-card { padding: 24px 20px }
+
+  /* Screen 2: sidebar becomes top tab bar */
+  #screen-2 {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr auto;
+  }
+  .sym-sidebar {
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+    max-height: 200px;
+  }
+  .sym-sidebar-header { padding: 14px 16px 10px }
+  .sym-sidebar-header h2 { font-size: 15px }
+  .sys-nav {
+    display: flex;
+    flex-direction: row;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 6px 10px;
+    gap: 4px;
+    scrollbar-width: none;
+  }
+  .sys-nav::-webkit-scrollbar { display: none }
+  .sys-nav-item {
+    flex-shrink: 0;
+    padding: 8px 12px;
+    margin-bottom: 0;
+    border-radius: 20px;
+    background: var(--bg3);
+  }
+  .sys-nav-item.active { background: var(--c-mint) }
+  [data-theme="dark"] .sys-nav-item.active { background: rgba(13,148,136,.2) }
+  .sys-nav-label { font-size: 12px; white-space: nowrap }
+  .sym-sidebar-footer {
+    border-top: none;
+    padding: 8px 12px;
+  }
+  .sym-main { padding: 16px }
+  .chips-grid { gap: 8px }
+  .chip { padding: 8px 14px; font-size: 12px }
+
+  /* Screen 4: stack diagnosis layout */
+  .diag-layout {
+    grid-template-columns: 1fr;
+  }
+  .diag-sidebar {
+    position: static;
+    min-height: unset;
+    padding: 24px 20px 20px;
+  }
+  .diag-title { font-size: 24px }
+  .diag-actions { flex-direction: row; flex-wrap: wrap; gap: 8px; margin-top: 16px }
+  .btn-back, .btn-goto-treat { flex: 1; min-width: 120px; text-align: center }
+  .diag-body { padding: 20px 16px }
+  .rx-grid { grid-template-columns: 1fr 1fr }
+
+  /* Screen 5: stack tracker layout */
+  #screen-5 {
+    grid-template-columns: 1fr !important;
+    grid-template-rows: auto 1fr;
+    overflow-y: auto;
+  }
+  .track-sidebar {
+    padding: 20px 16px;
+    min-height: unset;
+  }
+  .track-sidebar h2 { font-size: 20px }
+  .day-grid { grid-template-columns: repeat(4, 1fr) }
+  .btn-new-diag { margin-top: 16px }
+  .track-body { padding: 16px }
+  .ahvol-row { grid-template-columns: 1fr }
+  .ahvol-btn { padding: 12px 8px }
+
+  /* Topbar */
+  #topbar { padding: 0 14px; gap: 10px }
+  .tb-logo h1 { font-size: 17px }
+  #tb-breadcrumb { display: none }
+  #step-indicator { display: none }
+
+  /* Apteka grid if present */
+  .apteka-grid { grid-template-columns: 1fr !important }
+}
+
+@media (max-width: 400px) {
+  .s1-left h2 { font-size: 26px }
+  .gender-row { grid-template-columns: 1fr }
+  .rx-grid { grid-template-columns: 1fr }
+  .day-grid { grid-template-columns: 1fr 1fr }
+}
+
+
 </style>
 </head>
 <body>
