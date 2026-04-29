@@ -1067,44 +1067,93 @@ input,select,textarea { font-family:inherit }
   .s1-card { padding: 24px 20px }
 
   /* Screen 2: sidebar becomes top tab bar */
+/* ─── MOBILE SCREEN 2 FIX ─────────────── */
+@media (max-width: 768px) {
   #screen-2 {
     grid-template-columns: 1fr;
-    grid-template-rows: auto 1fr auto;
+    grid-template-rows: auto auto 1fr auto;
+    height: 100%;
+    overflow: hidden;
   }
+
   .sym-sidebar {
     border-right: none;
     border-bottom: 1px solid var(--border);
-    max-height: 200px;
+    max-height: unset;      /* remove the 200px cap */
+    overflow: visible;
   }
-  .sym-sidebar-header { padding: 14px 16px 10px }
+
+  .sym-sidebar-header {
+    padding: 12px 16px 8px;
+  }
+
   .sym-sidebar-header h2 { font-size: 15px }
+
   .sys-nav {
     display: flex;
     flex-direction: row;
     overflow-x: auto;
     overflow-y: hidden;
-    padding: 6px 10px;
-    gap: 4px;
+    padding: 6px 10px 10px;   /* extra bottom padding so chips don't clip */
+    gap: 6px;
     scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
   }
+
   .sys-nav::-webkit-scrollbar { display: none }
+
   .sys-nav-item {
     flex-shrink: 0;
-    padding: 8px 12px;
+    padding: 7px 12px;
     margin-bottom: 0;
     border-radius: 20px;
     background: var(--bg3);
+    gap: 6px;
   }
-  .sys-nav-item.active { background: var(--c-mint) }
-  [data-theme="dark"] .sys-nav-item.active { background: rgba(13,148,136,.2) }
-  .sys-nav-label { font-size: 12px; white-space: nowrap }
+
+  .sys-nav-item.active {
+    background: var(--c-mint);
+  }
+
+  [data-theme="dark"] .sys-nav-item.active {
+    background: rgba(13,148,136,.2);
+  }
+
+  /* hide the text label, show only icon on small screens */
+  .sys-nav-label {
+    display: none;
+  }
+
+  .sys-icon {
+    font-size: 22px;
+  }
+
+  /* the scrollable chips area */
+  .sym-main {
+    flex: 1;
+    overflow-y: auto;
+    padding: 14px 14px 80px; /* bottom padding so last chip isn't hidden behind button */
+    -webkit-overflow-scrolling: touch;
+  }
+
   .sym-sidebar-footer {
-    border-top: none;
-    padding: 8px 12px;
+    position: sticky;
+    bottom: 0;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    padding: 10px 14px;
+    z-index: 10;
   }
-  .sym-main { padding: 16px }
-  .chips-grid { gap: 8px }
-  .chip { padding: 8px 14px; font-size: 12px }
+
+  .chips-grid {
+    gap: 8px;
+  }
+
+  .chip {
+    padding: 8px 14px;
+    font-size: 12px;
+  }
+}
 
   /* Screen 4: stack diagnosis layout */
   .diag-layout {
